@@ -4,9 +4,9 @@ import { useRef, useEffect, useState } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
-const PARCHMENT_BASE = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='256' height='256'%3E%3Crect fill='%23e8d5b7' width='256' height='256'/%3E%3C/svg%3E";
-const CARTO_BASE =
-  "https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png";
+const OSM_BASE = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
+const STAMEN_LABELS =
+  "https://stamen-tiles-{s}.a.ssl.fastly.net/toner-labels/{z}/{x}/{y}{r}.png";
 
 type MapPickerProps = {
   open: boolean;
@@ -42,6 +42,7 @@ export default function MapPicker({
     const map = L.map(mapRef.current, {
       center: [initialLat, initialLng],
       zoom: 4,
+      attributionControl: false,
       maxBounds: [
         [-90, -180],
         [90, 180],
@@ -51,12 +52,20 @@ export default function MapPicker({
       worldCopyJump: false,
     });
 
-    // Living Parchment layers
-    L.tileLayer(PARCHMENT_BASE, { attribution: "", noWrap: true, minZoom: 0, maxZoom: 22 }).addTo(map);
-    L.tileLayer(CARTO_BASE, {
-      attribution: "© OpenStreetMap contributors © CARTO",
+    // OpenStreetMap base layer (CSS filter applied via .leaflet-container)
+    L.tileLayer(OSM_BASE, {
+      attribution: "",
       noWrap: true,
-      opacity: 0.85,
+      minZoom: 0,
+      maxZoom: 19,
+    }).addTo(map);
+    
+    // Labels layer: Stamen Toner Labels - single clean label per place, no duplicates
+    L.tileLayer(STAMEN_LABELS, {
+      attribution: "",
+      noWrap: true,
+      className: "map-labels-layer",
+      subdomains: "abcd",
     }).addTo(map);
 
     const waxSealIcon = L.divIcon({
@@ -115,7 +124,7 @@ export default function MapPicker({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 torn-paper-clip bg-gray-700 text-gray-300 font-cinzel hover:bg-gray-600"
+              className="px-4 py-2 bg-[#d4af37] text-gray-900 font-cinzel hover:bg-[#b8860b] hover:brightness-110"
             >
               Cancel
             </button>
@@ -123,7 +132,7 @@ export default function MapPicker({
               type="button"
               onClick={handleConfirm}
               disabled={!picked}
-              className="px-4 py-2 torn-paper-clip bg-amber-500 text-gray-900 font-cinzel font-medium hover:bg-amber-400 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 bg-[#d4af37] text-gray-900 font-cinzel font-medium hover:bg-[#b8860b] hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Confirm
             </button>

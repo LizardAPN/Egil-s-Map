@@ -5,10 +5,25 @@
 :root {
   --beacon-amber: #f59e0b;
   --beacon-glow: #fbbf24;
+  /* Medieval color palette */
+  --color-deep-obsidian: #0a0a0c;
+  --color-old-gold: #d4af37;
+  --color-blood-wine: #8b0000;
+  --color-aged-paper: #e2d1b0;
 }
 
 body {
   font-family: system-ui, -apple-system, sans-serif;
+  background-color: var(--color-deep-obsidian);
+  color: var(--color-aged-paper);
+}
+
+/* Text shadows for headers and labels */
+h1, h2, h3, h4, h5, h6,
+.font-cinzel,
+label,
+.leaflet-control-attribution {
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
 }
 
 /* Google Fonts utility classes */
@@ -28,6 +43,8 @@ body {
 /* Leaflet overrides */
 .leaflet-container {
   font-family: inherit;
+  /* Dark Parchment effect with visible terrain */
+  filter: sepia(100%) hue-rotate(-30deg) brightness(0.7) contrast(1.3) invert(90%) hue-rotate(180deg);
 }
 
 /* Living Parchment: medieval fantasy map aesthetic */
@@ -63,15 +80,9 @@ body {
   background-color: rgba(210, 180, 140, 0.95) !important;
 }
 
+/* Attribution hidden per user request */
 .leaflet-control-attribution {
-  background-color: rgba(222, 184, 135, 0.8) !important;
-  color: #5c4033 !important;
-  font-size: 10px;
-  font-family: 'Special Elite', monospace;
-}
-
-.leaflet-control-attribution a {
-  color: #8b7355 !important;
+  display: none !important;
 }
 
 /* Ghost marker for MapPicker - no default Leaflet marker styling */
@@ -85,11 +96,11 @@ body {
   cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath d='M12 2L14 8L20 8L14 12L16 18L12 14L8 18L10 12L4 8L10 8Z' fill='%23FFD700' stroke='%235D3A1A' stroke-width='1'/%3E%3C/svg%3E") 12 12, crosshair;
 }
 
-/* Ink Calligraphy labels - opacity controlled by zoom via JS */
+/* Labels layer styling - readable but not overly bold */
 .map-labels-layer {
-  filter: grayscale(100%) sepia(0.5);
-  mix-blend-mode: multiply;
-  font-family: 'Pinyon Script', cursive !important;
+  opacity: 0.9 !important;
+  mix-blend-mode: normal !important;
+  filter: brightness(0.25) contrast(1.1) !important;
 }
 
 /* Heatmap canvas blend mode for glowing effect */
@@ -141,4 +152,18 @@ body {
 .beacon-flame-icon .flame-path {
   animation: flame-flicker 2s ease-in-out infinite;
   transform-origin: center bottom;
+}
+
+/* Parchment container utility class */
+.parchment-container {
+  background-color: #1a1a1e;
+  border: 2px solid #3a3a3e;
+  border-radius: 0.125rem;
+  box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.5);
+}
+
+/* Button hover effects */
+button.hover-gold:hover {
+  background-color: #b8860b !important;
+  filter: brightness(1.2);
 }

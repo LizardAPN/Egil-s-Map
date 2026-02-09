@@ -12,13 +12,13 @@ export default function HomePage() {
       <div className="flex gap-4">
         <Link
           href="/map"
-          className="px-6 py-3 torn-paper-clip bg-amber-500/20 text-amber-400 border border-amber-500/50 hover:bg-amber-500/30 transition font-cinzel"
+          className="px-6 py-3 bg-[#d4af37] text-gray-900 hover:bg-[#b8860b] hover:brightness-110 font-cinzel"
         >
           Explore the Map
         </Link>
         <Link
           href="/login"
-          className="px-6 py-3 torn-paper-clip bg-gray-800 text-gray-200 border border-gray-600 hover:bg-gray-700 transition font-cinzel"
+          className="px-6 py-3 bg-[#d4af37] text-gray-900 hover:bg-[#b8860b] hover:brightness-110 font-cinzel"
         >
           Sign In
         </Link>

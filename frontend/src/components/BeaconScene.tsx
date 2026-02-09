@@ -60,14 +60,25 @@ export default function BeaconScene({ username, data: dataProp, onTierSelect }: 
     );
   }
 
+  const totalHeight = ((data.tiers?.length ?? 0) || 1) * 0.3;
+  
   return (
     <Canvas camera={{ position: [0, 2, 5], fov: 50 }}>
       <ambientLight intensity={0.25} />
       <directionalLight position={[5, 5, 5]} intensity={1.2} castShadow />
-      <pointLight position={[0, 5, 0]} intensity={data.current_is_star ? 2.5 : 1} color="#fbbf24" />
+      {/* Fire PointLight at top of beacon */}
+      <pointLight position={[0, totalHeight, 0]} intensity={data.current_is_star ? 2.5 : 1.5} color="#ffaa00" />
+      {/* SpotLight from above to highlight stone texture */}
+      <spotLight 
+        position={[0, totalHeight + 2, 0]} 
+        intensity={1.5}
+        angle={Math.PI / 4}
+        penumbra={0.5}
+        castShadow
+      />
       <BeaconTower
-        tiers={data.tiers}
-        isStar={data.current_is_star}
+        tiers={data.tiers ?? []}
+        isStar={data.current_is_star ?? false}
         onTierSelect={onTierSelect}
       />
       <OrbitControls enableZoom enablePan />
@@ -184,9 +195,9 @@ const TierSegment = React.memo(
 
     return (
       <group position={[0, index * height + height / 2, 0]}>
-        {/* Stone body */}
+        {/* Stone body - hexagonal hewn stone */}
         <mesh ref={meshRef} castShadow receiveShadow onClick={onClick}>
-          <cylinderGeometry args={[topRadius, bottomRadius, height, 8]} />
+          <cylinderGeometry args={[topRadius, bottomRadius, height, 6]} />
           {stoneMat}
         </mesh>
         {/* Forged cold iron ring (top) */}

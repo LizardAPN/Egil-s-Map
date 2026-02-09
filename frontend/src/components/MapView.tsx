@@ -18,9 +18,9 @@ export default function MapView() {
 
   return (
     <div className="h-full flex flex-col">
-      <header className="flex items-center justify-between p-4 bg-gray-900/80 border-b border-gray-700 z-10">
-        <Link href="/" className="text-xl font-bold text-amber-400 font-cinzel">Egil&apos;s Map</Link>
-        <nav className="flex gap-4 font-cinzel">
+      <header className="flex items-center justify-between p-4 bg-gray-900/50 backdrop-blur-md z-10 border-b h-[1px] bg-gradient-to-r from-transparent via-[#d4af37] to-transparent">
+        <Link href="/" className="text-xl font-bold text-amber-400 font-cinzel uppercase">Egil&apos;s Map</Link>
+        <nav className="flex gap-4 font-cinzel uppercase">
           <Link href="/map" className="text-amber-400">Map</Link>
           <Link href="/strongholds">Strongholds</Link>
           {status === "authenticated" ? (

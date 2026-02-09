@@ -77,7 +77,7 @@ export default function PinPage() {
           <span className="text-gray-400">{pin.inspiration_count} inspirations</span>
           <button
             onClick={handleInspire}
-            className="px-4 py-2 rounded-lg bg-amber-500 text-gray-900 font-medium hover:bg-amber-400"
+            className="px-4 py-2 bg-[#d4af37] text-gray-900 font-cinzel font-medium hover:bg-[#b8860b] hover:brightness-110"
           >
             Inspire
           </button>

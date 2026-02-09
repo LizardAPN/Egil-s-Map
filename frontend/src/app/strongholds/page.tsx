@@ -59,7 +59,7 @@ function CreateStrongholdForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="mb-8 p-4 torn-paper-clip">
+    <form onSubmit={handleSubmit} className="mb-8 p-4 bg-[#1a1a1e] border-2 border-[#3a3a3e] rounded-sm shadow-[inset_0_0_20px_rgba(0,0,0,0.5)]">
       <h2 className="font-medium mb-2 font-cinzel">Create Stronghold</h2>
       <div className="space-y-4">
         <div>
@@ -68,7 +68,7 @@ function CreateStrongholdForm({
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Name"
-            className="w-full px-3 py-2 torn-paper-clip bg-gray-700 border border-gray-600 font-special-elite"
+            className="w-full px-3 py-2 bg-[#0a0a0c] border border-gray-600 focus:border-[#d4af37] font-special-elite"
             required
           />
         </div>
@@ -86,7 +86,7 @@ function CreateStrongholdForm({
             <button
               type="button"
               onClick={() => setMapPickerOpen(true)}
-              className="px-4 py-2 torn-paper-clip bg-gray-700/80 backdrop-blur border border-gray-600 text-amber-400 hover:bg-gray-600/80 font-cinzel"
+              className="px-4 py-2 bg-[#d4af37] text-gray-900 hover:bg-[#b8860b] hover:brightness-110 font-cinzel"
             >
               Pick on Map
             </button>
@@ -100,7 +100,7 @@ function CreateStrongholdForm({
         <button
           type="submit"
           disabled={loading}
-          className="px-4 py-2 torn-paper-clip bg-amber-500 text-gray-900 font-cinzel font-medium"
+          className="px-4 py-2 bg-[#d4af37] text-gray-900 font-cinzel font-medium hover:bg-[#b8860b] hover:brightness-110 disabled:opacity-50"
         >
           {loading ? "Creating..." : "Create"}
         </button>
@@ -137,11 +137,11 @@ function StrongholdsPage() {
 
   return (
     <main className="min-h-screen">
-      <header className="flex items-center justify-between p-4 bg-gray-900/80 border-b border-gray-700">
-        <Link href="/" className="text-xl font-bold text-amber-400 font-cinzel">
+      <header className="flex items-center justify-between p-4 bg-gray-900/50 backdrop-blur-md border-b h-[1px] bg-gradient-to-r from-transparent via-[#d4af37] to-transparent">
+        <Link href="/" className="text-xl font-bold text-amber-400 font-cinzel uppercase">
           Egil&apos;s Map
         </Link>
-        <nav className="flex gap-4 font-cinzel">
+        <nav className="flex gap-4 font-cinzel uppercase">
           <Link href="/map">Map</Link>
           <Link href="/strongholds" className="text-amber-400">
             Strongholds
@@ -173,7 +173,7 @@ function StrongholdsPage() {
           {strongholds.map((s) => (
             <div
               key={s.id}
-              className="p-4 torn-paper-clip flex justify-between items-center"
+              className="p-4 bg-[#1a1a1e] border-2 border-[#3a3a3e] rounded-sm shadow-[inset_0_0_20px_rgba(0,0,0,0.5)] flex justify-between items-center"
             >
               <div>
                 <h2 className="font-medium font-cinzel">{s.name}</h2>
@@ -215,7 +215,7 @@ function StrongholdsPage() {
                           }
                         });
                     }}
-                    className="px-4 py-2 torn-paper-clip bg-amber-500/20 text-amber-400 border border-amber-500/50 hover:bg-amber-500/30 font-cinzel"
+                    className="px-4 py-2 bg-[#d4af37] text-gray-900 hover:bg-[#b8860b] hover:brightness-110 font-cinzel"
                   >
                     Join
                   </button>

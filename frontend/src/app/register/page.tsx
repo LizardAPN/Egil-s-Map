@@ -42,7 +42,7 @@ export default function RegisterPage() {
 
   return (
     <main className="min-h-screen flex items-center justify-center p-8">
-      <div className="w-full max-w-md torn-paper-clip p-6">
+      <div className="w-full max-w-md bg-[#1a1a1e] border-2 border-[#3a3a3e] rounded-sm shadow-[inset_0_0_20px_rgba(0,0,0,0.5)] p-6">
         <h1 className="text-2xl font-bold mb-6 text-amber-400 font-cinzel">Create Account</h1>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -51,7 +51,7 @@ export default function RegisterPage() {
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="w-full px-4 py-2 torn-paper-clip bg-gray-800 border border-gray-600 text-white font-special-elite"
+              className="w-full px-4 py-2 bg-[#0a0a0c] border border-gray-600 focus:border-[#d4af37] text-white font-special-elite"
               required
             />
           </div>
@@ -61,7 +61,7 @@ export default function RegisterPage() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-2 torn-paper-clip bg-gray-800 border border-gray-600 text-white font-special-elite"
+              className="w-full px-4 py-2 bg-[#0a0a0c] border border-gray-600 focus:border-[#d4af37] text-white font-special-elite"
             />
           </div>
           <div>
@@ -70,7 +70,7 @@ export default function RegisterPage() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-2 torn-paper-clip bg-gray-800 border border-gray-600 text-white font-special-elite"
+              className="w-full px-4 py-2 bg-[#0a0a0c] border border-gray-600 focus:border-[#d4af37] text-white font-special-elite"
               required
             />
           </div>
@@ -78,7 +78,7 @@ export default function RegisterPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-2 torn-paper-clip bg-amber-500 text-gray-900 font-cinzel font-medium hover:bg-amber-400 disabled:opacity-50"
+            className="w-full py-2 bg-[#d4af37] text-gray-900 font-cinzel font-medium hover:bg-[#b8860b] hover:brightness-110 disabled:opacity-50"
           >
             {loading ? "Creating..." : "Register"}
           </button>

@@ -92,7 +92,7 @@ export default function CreatePinPage() {
           ← Back to Map
         </Link>
       </header>
-      <div className="max-w-md torn-paper-clip p-6">
+      <div className="max-w-md bg-[#1a1a1e] border-2 border-[#3a3a3e] rounded-sm shadow-[inset_0_0_20px_rgba(0,0,0,0.5)] p-6">
         <h1 className="text-2xl font-bold mb-6 font-cinzel">Create Pin</h1>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -109,7 +109,7 @@ export default function CreatePinPage() {
               <select
                 value={tierId ?? ""}
                 onChange={(e) => setTierId(Number(e.target.value))}
-                className="w-full px-4 py-2 torn-paper-clip bg-gray-800 border border-gray-600 font-special-elite"
+                className="w-full px-4 py-2 bg-[#0a0a0c] border border-gray-600 focus:border-[#d4af37] font-special-elite"
                 required
               >
                 {tiers.map((t) => (
@@ -125,7 +125,7 @@ export default function CreatePinPage() {
             <select
               value={contentType}
               onChange={(e) => setContentType(e.target.value as "photo" | "video" | "text")}
-              className="w-full px-4 py-2 torn-paper-clip bg-gray-800 border border-gray-600 font-special-elite"
+              className="w-full px-4 py-2 bg-[#0a0a0c] border border-gray-600 focus:border-[#d4af37] font-special-elite"
             >
               <option value="text">Text</option>
               <option value="photo">Photo</option>
@@ -138,7 +138,7 @@ export default function CreatePinPage() {
               <textarea
                 value={textContent}
                 onChange={(e) => setTextContent(e.target.value)}
-                className="w-full px-4 py-2 torn-paper-clip bg-gray-800 border border-gray-600 font-special-elite"
+                className="w-full px-4 py-2 bg-[#0a0a0c] border border-gray-600 focus:border-[#d4af37] font-special-elite"
                 rows={4}
               />
             </div>
@@ -169,7 +169,7 @@ export default function CreatePinPage() {
               <button
                 type="button"
                 onClick={() => setMapPickerOpen(true)}
-                className="px-4 py-2 torn-paper-clip bg-gray-800 border border-gray-600 text-amber-400 hover:bg-gray-700 font-cinzel"
+                className="px-4 py-2 bg-[#d4af37] text-gray-900 hover:bg-[#b8860b] hover:brightness-110 font-cinzel"
               >
                 Pick on Map
               </button>
@@ -212,7 +212,7 @@ export default function CreatePinPage() {
           <button
             type="submit"
             disabled={loading || tiers.length === 0}
-            className="w-full py-2 torn-paper-clip bg-amber-500 text-gray-900 font-cinzel font-medium hover:bg-amber-400 disabled:opacity-50"
+            className="w-full py-2 bg-[#d4af37] text-gray-900 font-cinzel font-medium hover:bg-[#b8860b] hover:brightness-110 disabled:opacity-50"
           >
             {loading ? "Creating..." : "Create Pin"}
           </button>

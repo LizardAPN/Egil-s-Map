@@ -59,11 +59,11 @@ export default function ProfilePage() {
 
   return (
     <main className="min-h-screen">
-      <header className="flex items-center justify-between p-4 bg-gray-900/80 border-b border-gray-700">
-        <Link href="/" className="text-xl font-bold text-amber-400 font-cinzel">
+      <header className="flex items-center justify-between p-4 bg-gray-900/50 backdrop-blur-md border-b h-[1px] bg-gradient-to-r from-transparent via-[#d4af37] to-transparent">
+        <Link href="/" className="text-xl font-bold text-amber-400 font-cinzel uppercase">
           Egil&apos;s Map
         </Link>
-        <nav className="flex gap-4 font-cinzel">
+        <nav className="flex gap-4 font-cinzel uppercase">
           <Link href="/map">Map</Link>
           <Link href="/strongholds">Strongholds</Link>
           <button type="button" onClick={() => signOut({ callbackUrl: "/" })} className="text-inherit hover:underline bg-transparent border-none cursor-pointer p-0 font-inherit">
@@ -211,7 +211,7 @@ function TierSideDrawer({
                   <li key={pin.id}>
                     <Link
                       href={`/pins/${pin.id}`}
-                      className="block p-3 rounded-lg bg-gray-800/80 hover:bg-gray-700/80 text-gray-200 text-sm"
+                      className="block p-3 rounded-sm bg-[#1a1a1e] border border-[#3a3a3e] hover:bg-[#2a2a2e] text-gray-200 text-sm"
                     >
                       Pin #{pin.id} ({pin.content_type}) — {pin.lat.toFixed(2)}, {pin.lng.toFixed(2)}
                     </Link>
@@ -225,7 +225,7 @@ function TierSideDrawer({
             <button
               type="button"
               onClick={() => setEditOpen(true)}
-              className="w-full py-2 rounded-lg bg-amber-500/20 text-amber-400 border border-amber-500/50 hover:bg-amber-500/30"
+              className="w-full py-2 bg-[#d4af37] text-gray-900 hover:bg-[#b8860b] hover:brightness-110 font-cinzel"
             >
               Edit Chapter
             </button>
@@ -239,7 +239,7 @@ function TierSideDrawer({
           onClick={(e) => e.target === e.currentTarget && setEditOpen(false)}
         >
           <div
-            className="w-full max-w-md rounded-xl bg-gray-800 border border-gray-700 p-6 shadow-xl"
+            className="w-full max-w-md bg-[#1a1a1e] border-2 border-[#3a3a3e] rounded-sm shadow-[inset_0_0_20px_rgba(0,0,0,0.5)] p-6"
             onClick={(e) => e.stopPropagation()}
           >
             <h3 className="text-lg font-bold mb-4">Edit Chapter</h3>
@@ -250,7 +250,7 @@ function TierSideDrawer({
                   type="text"
                   value={editTitle}
                   onChange={(e) => setEditTitle(e.target.value)}
-                  className="w-full px-4 py-2 rounded-lg bg-gray-700 border border-gray-600"
+                  className="w-full px-4 py-2 bg-[#0a0a0c] border border-gray-600 focus:border-[#d4af37] font-special-elite"
                 />
               </div>
               <div>
@@ -260,14 +260,14 @@ function TierSideDrawer({
                   onChange={(e) => setEditSummary(e.target.value)}
                   rows={4}
                   placeholder="A brief summary or key wisdom from this life chapter..."
-                  className="w-full px-4 py-2 rounded-lg bg-gray-700 border border-gray-600"
+                  className="w-full px-4 py-2 bg-[#0a0a0c] border border-gray-600 focus:border-[#d4af37] font-special-elite"
                 />
               </div>
               <div className="flex gap-2">
                 <button
                   type="button"
                   onClick={() => setEditOpen(false)}
-                  className="flex-1 py-2 rounded-lg bg-gray-700 text-gray-300"
+                  className="flex-1 py-2 bg-[#d4af37] text-gray-900 hover:bg-[#b8860b] hover:brightness-110 font-cinzel"
                 >
                   Cancel
                 </button>
@@ -275,7 +275,7 @@ function TierSideDrawer({
                   type="button"
                   onClick={handleSave}
                   disabled={saving}
-                  className="flex-1 py-2 rounded-lg bg-amber-500 text-gray-900 font-medium disabled:opacity-50"
+                  className="flex-1 py-2 bg-[#d4af37] text-gray-900 hover:bg-[#b8860b] hover:brightness-110 font-cinzel font-medium disabled:opacity-50"
                 >
                   {saving ? "Saving..." : "Save"}
                 </button>
@@ -357,7 +357,7 @@ function TierManager({
   const hasSessionNoToken = isAuthenticated && !validToken;
 
   return (
-    <div className="p-4 rounded-lg bg-gray-800 border border-gray-700">
+    <div className="p-4 bg-[#1a1a1e] border-2 border-[#3a3a3e] rounded-sm shadow-[inset_0_0_20px_rgba(0,0,0,0.5)]">
       <h2 className="font-medium mb-2">Beacon Tiers (Life Chapters)</h2>
       {hasSessionNoToken && (
         <p className="text-amber-400 text-sm mb-4">
@@ -377,11 +377,11 @@ function TierManager({
           value={newTitle}
           onChange={(e) => setNewTitle(e.target.value)}
           placeholder="New tier (e.g. Moscow)"
-          className="flex-1 px-3 py-2 rounded bg-gray-700 border border-gray-600"
+          className="flex-1 px-3 py-2 bg-[#0a0a0c] border border-gray-600 focus:border-[#d4af37] font-special-elite"
         />
         <button
           onClick={addTier}
-          className="px-4 py-2 rounded bg-amber-500 text-gray-900 font-medium"
+          className="px-4 py-2 bg-[#d4af37] text-gray-900 hover:bg-[#b8860b] hover:brightness-110 font-cinzel font-medium"
         >
           Add Tier
         </button>

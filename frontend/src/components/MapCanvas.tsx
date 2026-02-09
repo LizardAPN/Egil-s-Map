@@ -20,8 +20,8 @@ declare module "leaflet" {
   ): L.Layer;
 }
 
-/* Parchment base color - used as tile layer placeholder for "Living Parchment" */
-const PARCHMENT_BASE = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='256' height='256'%3E%3Crect fill='%23e8d5b7' width='256' height='256'/%3E%3C/svg%3E";
+/* OpenStreetMap base layer URL */
+const OSM_BASE = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
 
 export default function MapCanvas({ token }: { token?: string }) {
   const mapRef = useRef<HTMLDivElement>(null);
@@ -42,6 +42,7 @@ export default function MapCanvas({ token }: { token?: string }) {
       
       map = L.map(mapRef.current, {
         zoomControl: true,
+        attributionControl: false,
         maxBounds: [
           [-90, -180],
           [90, 180],
@@ -51,46 +52,26 @@ export default function MapCanvas({ token }: { token?: string }) {
         worldCopyJump: false,
       }).setView([20, 0], 2);
 
-      // 1. Base: Parchment texture (solid parchment tile)
-      L.tileLayer(PARCHMENT_BASE, {
+      // 1. Base: OpenStreetMap tiles (CSS filter applied via .leaflet-container)
+      L.tileLayer(OSM_BASE, {
         attribution: "",
         noWrap: true,
         minZoom: 0,
-        maxZoom: 22,
+        maxZoom: 19,
       }).addTo(map);
-
-      // 2. Ink-style monochrome map overlay
-      L.tileLayer(
-        "https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png",
-        {
-          attribution: "© OpenStreetMap contributors © CARTO",
-          noWrap: true,
-          opacity: 0.85,
-        }
-      ).addTo(map);
       
-      // 3. Ink Calligraphy labels - opacity = 0 at low zoom, fade in smoothly as user zooms
+      // 2. Labels layer: Stamen Toner Labels - single clean label per place, no duplicates
       const labelsLayer = L.tileLayer(
-        "https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png",
+        "https://stamen-tiles-{s}.a.ssl.fastly.net/toner-labels/{z}/{x}/{y}{r}.png",
         {
-          attribution: "© OpenStreetMap contributors © CARTO",
+          attribution: "",
           noWrap: true,
           className: "map-labels-layer",
+          subdomains: "abcd",
         }
       );
       labelsLayer.addTo(map);
       labelsLayerRef.current = labelsLayer;
-
-      // Ink Calligraphy labels: opacity 0 at low zoom, fade in smoothly as user zooms
-      function updateLabelsOpacity() {
-        const z = map!.getZoom();
-        const minZ = 2.5;
-        const maxZ = 6;
-        const opacity = Math.max(0, Math.min(1, (z - minZ) / (maxZ - minZ)));
-        labelsLayer.setOpacity(opacity);
-      }
-      updateLabelsOpacity();
-      map.on("zoomend", updateLabelsOpacity);
       
       const markers = L.layerGroup().addTo(map);
       markersRef.current = markers;
