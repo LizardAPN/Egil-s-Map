@@ -180,3 +180,219 @@ button.hover-gold:hover {
   background-color: #b8860b !important;
   filter: brightness(1.2);
 }
+
+/* Traveler's Chronicle Theme Styles */
+
+/* Dark parchment background with grain overlay */
+.chronicle-bg {
+  background-color: #121214;
+  position: relative;
+}
+
+.chronicle-bg::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='parchmentGrain'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23parchmentGrain)' opacity='0.15'/%3E%3C/svg%3E");
+  opacity: 0.6;
+  mix-blend-mode: overlay;
+}
+
+/* Vignette effect */
+.chronicle-vignette {
+  box-shadow: inset 0 0 150px rgba(0, 0, 0, 0.9);
+}
+
+/* Torn edge border for media using mask-image */
+.torn-edge-media {
+  position: relative;
+  filter: sepia(0.2);
+}
+
+.torn-edge-media::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  mask-image: url("data:image/svg+xml,%3Csvg width='100' height='100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0,5 Q2,2 5,5 T10,5 T15,5 T20,5 T25,5 T30,5 T35,5 T40,5 T45,5 T50,5 T55,5 T60,5 T65,5 T70,5 T75,5 T80,5 T85,5 T90,5 T95,5 T100,5 L100,95 Q98,98 95,95 T90,95 T85,95 T80,95 T75,95 T70,95 T65,95 T60,95 T55,95 T50,95 T45,95 T40,95 T35,95 T30,95 T25,95 T20,95 T15,95 T10,95 T5,95 T0,95 Z' fill='black'/%3E%3C/svg%3E");
+  mask-size: 100% 100%;
+  mask-repeat: no-repeat;
+  background: rgba(139, 115, 85, 0.3);
+}
+
+/* Masonry layout utilities */
+.masonry-grid {
+  column-count: 1;
+  column-gap: 1.5rem;
+}
+
+@media (min-width: 640px) {
+  .masonry-grid {
+    column-count: 2;
+  }
+}
+
+@media (min-width: 1024px) {
+  .masonry-grid {
+    column-count: 3;
+  }
+}
+
+@media (min-width: 1280px) {
+  .masonry-grid {
+    column-count: 4;
+  }
+}
+
+.masonry-item {
+  break-inside: avoid;
+  margin-bottom: 1.5rem;
+  display: inline-block;
+  width: 100%;
+}
+
+/* Quote moment styling */
+.moment-quote {
+  width: 100%;
+  font-family: 'Pinyon Script', cursive;
+  position: relative;
+  padding: 2rem;
+  background: rgba(245, 222, 179, 0.1);
+  border: 2px solid rgba(212, 175, 55, 0.3);
+  border-radius: 0.5rem;
+}
+
+.moment-quote::before {
+  content: '"';
+  position: absolute;
+  top: -0.5rem;
+  left: 0.5rem;
+  font-size: 4rem;
+  color: #d4af37;
+  opacity: 0.5;
+  font-family: 'Pinyon Script', cursive;
+}
+
+.moment-quote::after {
+  content: '"';
+  position: absolute;
+  bottom: -1.5rem;
+  right: 0.5rem;
+  font-size: 4rem;
+  color: #d4af37;
+  opacity: 0.5;
+  font-family: 'Pinyon Script', cursive;
+}
+
+/* Note moment styling - paper pinned to board */
+.moment-note {
+  background: rgba(245, 222, 179, 0.95);
+  padding: 1.5rem;
+  font-family: 'Special Elite', monospace;
+  position: relative;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  transform: rotate(-0.5deg);
+}
+
+.moment-note::before {
+  content: '';
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 20px;
+  height: 20px;
+  background: rgba(139, 115, 85, 0.8);
+  border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* Media moment styling */
+.moment-media {
+  position: relative;
+  overflow: hidden;
+}
+
+.moment-media img,
+.moment-media video {
+  width: 100%;
+  height: auto;
+  display: block;
+  filter: sepia(0.2);
+}
+
+/* Focus Mode Modal */
+.focus-mode-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(8px);
+}
+
+.focus-mode-content {
+  position: fixed;
+  inset: 0;
+  z-index: 51;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.focus-mode-parchment {
+  max-width: 90vw;
+  max-height: 90vh;
+  background: rgba(245, 222, 179, 0.98);
+  padding: 3rem;
+  border: 3px solid rgba(139, 115, 85, 0.8);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  overflow-y: auto;
+  position: relative;
+}
+
+/* Chapter Bar - Leather Tab Styling */
+.chapter-tab {
+  display: inline-block;
+  padding: 0.75rem 1.5rem;
+  background: linear-gradient(180deg, rgba(139, 115, 85, 0.9) 0%, rgba(101, 67, 33, 0.9) 100%);
+  color: #d4af37;
+  font-family: 'Cinzel', serif;
+  font-weight: 600;
+  border-radius: 0.5rem 0.5rem 0 0;
+  border: 2px solid rgba(101, 67, 33, 0.8);
+  border-bottom: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.chapter-tab:hover {
+  background: linear-gradient(180deg, rgba(160, 130, 100, 0.95) 0%, rgba(120, 85, 50, 0.95) 100%);
+  transform: translateY(-2px);
+}
+
+.chapter-tab.active {
+  background: linear-gradient(180deg, rgba(212, 175, 55, 0.3) 0%, rgba(139, 115, 85, 0.9) 100%);
+  color: #ffd700;
+  border-color: rgba(212, 175, 55, 0.6);
+}
+
+.chapter-tab::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: #121214;
+}

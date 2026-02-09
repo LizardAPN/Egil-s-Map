@@ -22,3 +22,11 @@ class UserResponse(BaseModel):
 class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
+
+
+class UserSettingsUpdate(BaseModel):
+    is_profile_private: bool
+
+
+class UserSettingsResponse(BaseModel):
+    is_profile_private: bool

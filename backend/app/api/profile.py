@@ -4,11 +4,12 @@ from sqlalchemy import select
 from geoalchemy2.shape import to_shape
 
 from app.core.database import get_db
-from app.core.deps import get_current_user_optional
+from app.core.deps import get_current_user_optional, get_current_user
 from app.models.user import User
 from app.models.beacon import BeaconTier
 from app.models.pin import LegacyPin
 from app.schemas.beacon import BeaconResponse, BeaconTierWithPins, PinInBeacon
+from app.schemas.user import UserSettingsUpdate, UserSettingsResponse
 
 router = APIRouter()
 
@@ -97,3 +98,25 @@ async def get_profile(
         "total_inspiration_score": user.total_inspiration_score,
         "current_is_star": user.current_is_star,
     }
+
+
+@router.patch("/user/settings", response_model=UserSettingsResponse)
+async def update_user_settings(
+    settings: UserSettingsUpdate,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Update user privacy settings."""
+    user.is_profile_private = settings.is_profile_private
+    await db.flush()
+    await db.refresh(user)
+    return UserSettingsResponse(is_profile_private=user.is_profile_private)
+
+
+@router.get("/user/settings", response_model=UserSettingsResponse)
+async def get_user_settings(
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get current user's privacy settings."""
+    return UserSettingsResponse(is_profile_private=user.is_profile_private)

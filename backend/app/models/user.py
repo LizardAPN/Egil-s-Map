@@ -30,6 +30,9 @@ class User(Base):
     role = Column(Enum(UserRole), default=UserRole.USER, nullable=False, index=True)
     is_shadow_banned = Column(Boolean, default=False, nullable=False)
     is_muted = Column(Boolean, default=False, nullable=False)
+    
+    # Privacy settings
+    is_profile_private = Column(Boolean, default=False, nullable=False)
 
     beacon_tiers = relationship("BeaconTier", back_populates="user")
     pins = relationship("LegacyPin", back_populates="user")
