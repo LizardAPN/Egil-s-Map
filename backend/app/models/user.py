@@ -35,5 +35,6 @@ class User(Base):
     pins = relationship("LegacyPin", back_populates="user")
     inspirations_sent = relationship("Inspiration", foreign_keys="Inspiration.from_user_id", back_populates="from_user")
     led_strongholds = relationship("Stronghold", back_populates="leader")
+    stronghold_memberships = relationship("StrongholdMember", back_populates="user")
     reports_made = relationship("Report", foreign_keys="Report.reporter_id", back_populates="reporter")
     reports_received = relationship("Report", foreign_keys="Report.reported_user_id", back_populates="reported_user")

@@ -28,6 +28,7 @@ export default function MapCanvas({ token }: { token?: string }) {
   const mapInstanceRef = useRef<L.Map | null>(null);
   const heatLayerRef = useRef<L.Layer | null>(null);
   const markersRef = useRef<L.LayerGroup | null>(null);
+  const strongholdMarkersRef = useRef<L.LayerGroup | null>(null);
   const labelsLayerRef = useRef<L.TileLayer | null>(null);
   const [ready, setReady] = useState(false);
 
@@ -75,6 +76,8 @@ export default function MapCanvas({ token }: { token?: string }) {
       
       const markers = L.layerGroup().addTo(map);
       markersRef.current = markers;
+      const strongholdMarkers = L.layerGroup().addTo(map);
+      strongholdMarkersRef.current = strongholdMarkers;
       mapInstanceRef.current = map;
       
       // Invalidate size to ensure Leaflet recalculates container dimensions
@@ -112,6 +115,7 @@ export default function MapCanvas({ token }: { token?: string }) {
       }
       mapInstanceRef.current = null;
       markersRef.current = null;
+      strongholdMarkersRef.current = null;
       labelsLayerRef.current = null;
       setReady(false);
     };
@@ -138,12 +142,14 @@ export default function MapCanvas({ token }: { token?: string }) {
         const maxLng = b.getEast();
         const params = `min_lat=${minLat}&max_lat=${maxLat}&min_lng=${minLng}&max_lng=${maxLng}`;
         
-        const [heatRes, pinsRes] = await Promise.all([
+        const [heatRes, pinsRes, strongholdsRes] = await Promise.all([
           fetch(`${API_BASE}/map/heatmap?${params}`),
           fetch(`${API_BASE}/map/pins?${params}`),
+          fetch(`${API_BASE}/map/strongholds?${params}`),
         ]);
         const heatData = await heatRes.json();
         const pinsData = await pinsRes.json();
+        const strongholdsData = await strongholdsRes.json();
 
         if (!mapInstanceRef.current) return;
 
@@ -203,6 +209,29 @@ export default function MapCanvas({ token }: { token?: string }) {
             });
             const m = L.marker([pin.lat, pin.lng], { icon }).addTo(markersRef.current);
             m.bindPopup(`<a href="/pins/${pin.id}">Pin #${pin.id}</a>`);
+          }
+        }
+
+        // Stronghold markers - castle/fortress icon, size by brightness
+        if (strongholdMarkersRef.current) {
+          strongholdMarkersRef.current.clearLayers();
+          for (const sh of strongholdsData as { id: number; name: string; lat: number; lng: number; brightness: number }[]) {
+            const size = Math.min(40, Math.max(24, 24 + Math.floor(sh.brightness / 50) * 4));
+            const iconSvgString = `
+              <svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 2 L14 4 L14 8 L16 8 L16 12 L18 12 L18 20 L6 20 L6 12 L8 12 L8 8 L10 8 L10 4 Z" stroke="#8B4513" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="rgba(139,69,19,0.2)"/>
+                <path d="M6 20 L6 18 M8 20 L8 18 M10 20 L10 18 M12 20 L12 18 M14 20 L14 18 M16 20 L16 18 M18 20 L18 18" stroke="#5D3A1A" stroke-width="1.5" stroke-linecap="round"/>
+                <rect x="10" y="16" width="4" height="4" stroke="#5D3A1A" stroke-width="1" fill="rgba(212,175,55,0.3)"/>
+              </svg>
+            `;
+            const icon = L.divIcon({
+              className: "stronghold-marker",
+              html: iconSvgString,
+              iconSize: [size, size],
+              iconAnchor: [size / 2, size],
+            });
+            const m = L.marker([sh.lat, sh.lng], { icon }).addTo(strongholdMarkersRef.current);
+            m.bindPopup(`<a href="/strongholds/${sh.id}" class="font-cinzel">${sh.name}</a><br/><span class="text-gray-500 text-sm">Brightness: ${sh.brightness}</span>`);
           }
         }
       } catch {

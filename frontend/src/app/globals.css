@@ -91,6 +91,12 @@ label,
   border: none !important;
 }
 
+/* Stronghold castle marker - no default Leaflet marker styling */
+.stronghold-marker {
+  background: transparent !important;
+  border: none !important;
+}
+
 /* Pick on Map: Compass Rose / Dagger cursor */
 .map-picker-cursor .leaflet-container {
   cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath d='M12 2L14 8L20 8L14 12L16 18L12 14L8 18L10 12L4 8L10 8Z' fill='%23FFD700' stroke='%235D3A1A' stroke-width='1'/%3E%3C/svg%3E") 12 12, crosshair;
@@ -160,6 +166,13 @@ label,
   border: 2px solid #3a3a3e;
   border-radius: 0.125rem;
   box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.5);
+}
+
+/* Citadel / Dark Parchment background for stronghold detail */
+.citadel-bg {
+  background-color: #1a1a1e;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='citadelNoise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23citadelNoise)' opacity='0.08'/%3E%3C/svg%3E");
+  min-height: 100vh;
 }
 
 /* Button hover effects */

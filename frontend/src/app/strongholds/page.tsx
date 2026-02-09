@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useSession, signOut } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import AddressSearch from "@/components/AddressSearch";
@@ -19,8 +20,10 @@ function CreateStrongholdForm({
   onCreated: () => void;
 }) {
   const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
   const [lat, setLat] = useState(55.75);
   const [lng, setLng] = useState(37.62);
+  const [isPrivate, setIsPrivate] = useState(false);
   const [locationLabel, setLocationLabel] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [mapPickerOpen, setMapPickerOpen] = useState(false);
@@ -36,10 +39,11 @@ function CreateStrongholdForm({
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ name, lat, lng, is_private: false }),
+        body: JSON.stringify({ name, description: description || null, lat, lng, is_private: isPrivate }),
       });
       if (res.ok) {
         setName("");
+        setDescription("");
         setLocationLabel(null);
         onCreated();
       } else {
@@ -71,6 +75,25 @@ function CreateStrongholdForm({
             className="w-full px-3 py-2 bg-[#0a0a0c] border border-gray-600 focus:border-[#d4af37] font-special-elite"
             required
           />
+        </div>
+        <div>
+          <label className="block text-sm text-gray-400 mb-1 font-special-elite">Manifesto (optional)</label>
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="The ideology of this community..."
+            rows={3}
+            className="w-full px-3 py-2 bg-[#0a0a0c] border border-gray-600 focus:border-[#d4af37] font-special-elite"
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            id="is_private"
+            checked={isPrivate}
+            onChange={(e) => setIsPrivate(e.target.checked)}
+          />
+          <label htmlFor="is_private" className="font-special-elite text-sm">Private (require approval to join)</label>
         </div>
         <div>
           <label className="block text-sm text-gray-400 mb-1 font-special-elite">Location</label>
@@ -121,9 +144,10 @@ function CreateStrongholdForm({
 }
 
 function StrongholdsPage() {
+  const router = useRouter();
   const { data: session } = useSession();
   const [strongholds, setStrongholds] = useState<
-    { id: number; name: string; lat: number; lng: number; brightness: number; is_member?: boolean }[]
+    { id: number; name: string; lat: number; lng: number; brightness: number; is_member?: boolean; is_private?: boolean }[]
   >([]);
   const token = (session as { accessToken?: string })?.accessToken;
 
@@ -173,7 +197,11 @@ function StrongholdsPage() {
           {strongholds.map((s) => (
             <div
               key={s.id}
-              className="p-4 bg-[#1a1a1e] border-2 border-[#3a3a3e] rounded-sm shadow-[inset_0_0_20px_rgba(0,0,0,0.5)] flex justify-between items-center"
+              className="p-4 bg-[#1a1a1e] border-2 border-[#3a3a3e] rounded-sm shadow-[inset_0_0_20px_rgba(0,0,0,0.5)] flex justify-between items-center cursor-pointer hover:border-amber-700/50 transition-colors"
+              onClick={() => router.push(`/strongholds/${s.id}`)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => e.key === "Enter" && router.push(`/strongholds/${s.id}`)}
             >
               <div>
                 <h2 className="font-medium font-cinzel">{s.name}</h2>
@@ -183,10 +211,19 @@ function StrongholdsPage() {
               </div>
               {session && (
                 s.is_member ? (
-                  <span className="px-4 py-2 text-sm text-gray-400 font-special-elite">Member</span>
+                  <span className="px-4 py-2 text-sm text-gray-400 font-special-elite" onClick={(e) => e.stopPropagation()}>Member</span>
+                ) : s.is_private ? (
+                  <Link
+                    href={`/strongholds/${s.id}`}
+                    onClick={(e) => e.stopPropagation()}
+                    className="px-4 py-2 bg-[#d4af37] text-gray-900 hover:bg-[#b8860b] hover:brightness-110 font-cinzel"
+                  >
+                    Request Entry
+                  </Link>
                 ) : (
                   <button
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.stopPropagation();
                       if (!isValidToken(token)) return;
                       fetch(`${API_BASE}/strongholds/${s.id}/join`, {
                         method: "POST",
@@ -201,11 +238,11 @@ function StrongholdsPage() {
                             );
                           } else {
                             r.json()
-                              .then((e) => {
-                                const msg = Array.isArray(e.detail)
-                                  ? e.detail.map((x: { msg?: string }) => x.msg || JSON.stringify(x)).join("; ")
-                                  : e.detail || "Could not join";
-                                console.error("API Error: join stronghold", msg, e);
+                              .then((err) => {
+                                const msg = Array.isArray(err.detail)
+                                  ? err.detail.map((x: { msg?: string }) => x.msg || JSON.stringify(x)).join("; ")
+                                  : err.detail || "Could not join";
+                                console.error("API Error: join stronghold", msg, err);
                                 alert(msg);
                               })
                               .catch(() => {
@@ -216,6 +253,7 @@ function StrongholdsPage() {
                         });
                     }}
                     className="px-4 py-2 bg-[#d4af37] text-gray-900 hover:bg-[#b8860b] hover:brightness-110 font-cinzel"
+                    type="button"
                   >
                     Join
                   </button>

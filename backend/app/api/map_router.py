@@ -116,3 +116,48 @@ async def get_pins(
         }
         for r in rows
     ]
+
+
+@router.get("/strongholds")
+async def get_strongholds(
+    min_lat: float = Query(...),
+    max_lat: float = Query(...),
+    min_lng: float = Query(...),
+    max_lng: float = Query(...),
+    db: AsyncSession = Depends(get_db),
+):
+    center_lng = (min_lng + max_lng) / 2
+    center_lat = (min_lat + max_lat) / 2
+    distance_meters = 111000 * ((max_lat - min_lat) ** 2 + (max_lng - min_lng) ** 2) ** 0.5
+
+    result = await db.execute(
+        text("""
+            SELECT s.id, s.name, ST_X(s.location::geometry) as lng, ST_Y(s.location::geometry) as lat,
+                   COALESCE(SUM(u.total_inspiration_score), 0)::int as brightness
+            FROM strongholds s
+            LEFT JOIN stronghold_members sm ON sm.stronghold_id = s.id
+            LEFT JOIN users u ON u.id = sm.user_id
+            WHERE ST_DWithin(
+                s.location::geometry,
+                ST_SetSRID(ST_MakePoint(:center_lng, :center_lat), 4326)::geography,
+                :distance_meters
+            )
+            AND ST_X(s.location::geometry) BETWEEN :min_lng AND :max_lng
+            AND ST_Y(s.location::geometry) BETWEEN :min_lat AND :max_lat
+            GROUP BY s.id, s.name, s.location
+        """),
+        {
+            "center_lng": center_lng,
+            "center_lat": center_lat,
+            "distance_meters": distance_meters,
+            "min_lng": min_lng,
+            "max_lng": max_lng,
+            "min_lat": min_lat,
+            "max_lat": max_lat,
+        },
+    )
+    rows = result.fetchall()
+    return [
+        {"id": r[0], "name": r[1], "lng": r[2], "lat": r[3], "brightness": r[4]}
+        for r in rows
+    ]
