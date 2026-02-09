@@ -1,6 +1,7 @@
 services:
   postgres:
     image: postgis/postgis:15-3.4
+    env_file: .env
     environment:
       POSTGRES_USER: egilsmap
       POSTGRES_PASSWORD: egilsmap_secret
@@ -18,6 +19,7 @@ services:
   minio:
     image: minio/minio:latest
     command: server /data
+    env_file: .env
     environment:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minioadmin
@@ -32,6 +34,49 @@ services:
       timeout: 5s
       retries: 3
 
+  redis:
+    image: redis:7-alpine
+    env_file: .env
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  backend:
+    build: ./backend
+    env_file: .env
+    environment:
+      # Use Docker service names when running in compose (override .env localhost URLs)
+      DATABASE_URL: postgresql+asyncpg://egilsmap:egilsmap_secret@postgres:5432/egilsmap
+      REDIS_URL: redis://redis:6379/0
+      S3_ENDPOINT_URL: ${S3_ENDPOINT_URL}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY}
+      S3_SECRET_KEY: ${S3_SECRET_KEY}
+      S3_BUCKET: ${S3_BUCKET}
+      S3_REGION: ${S3_REGION}
+      AUTH_SECRET: ${AUTH_SECRET}
+      JWT_SECRET: ${JWT_SECRET}
+      BACKEND_URL: ${BACKEND_URL}
+      ENVIRONMENT: ${ENVIRONMENT}
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
 volumes:
   postgres_data:
+  redis_data:
   minio_data:

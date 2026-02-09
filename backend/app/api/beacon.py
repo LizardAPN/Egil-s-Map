@@ -28,6 +28,13 @@ async def create_tier(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    # Check if user is muted
+    if user.is_muted:
+        raise HTTPException(
+            status_code=403,
+            detail="Your account has been muted. You cannot create content.",
+        )
+    
     tier = BeaconTier(
         user_id=user.id,
         title=data.title,
@@ -46,6 +53,13 @@ async def update_tier(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    # Check if user is muted
+    if user.is_muted:
+        raise HTTPException(
+            status_code=403,
+            detail="Your account has been muted. You cannot modify content.",
+        )
+    
     result = await db.execute(
         select(BeaconTier).where(BeaconTier.id == tier_id, BeaconTier.user_id == user.id)
     )
@@ -54,6 +68,7 @@ async def update_tier(
         raise HTTPException(status_code=404, detail="Tier not found")
     tier.title = data.title
     tier.order = data.order
+    tier.chapter_summary = data.chapter_summary
     await db.flush()
     await db.refresh(tier)
     return tier
@@ -65,6 +80,13 @@ async def delete_tier(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    # Check if user is muted
+    if user.is_muted:
+        raise HTTPException(
+            status_code=403,
+            detail="Your account has been muted. You cannot delete content.",
+        )
+    
     result = await db.execute(
         select(BeaconTier).where(BeaconTier.id == tier_id, BeaconTier.user_id == user.id)
     )

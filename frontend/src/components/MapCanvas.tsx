@@ -38,11 +38,39 @@ export default function MapCanvas({ token }: { token?: string }) {
       
       map = L.map(mapRef.current, {
         zoomControl: true,
+        maxBounds: [
+          [-90, -180],
+          [90, 180],
+        ],
+        maxBoundsViscosity: 1.0,
+        minZoom: 2.5,
+        worldCopyJump: false,
       }).setView([20, 0], 2);
+
+      // Esri World Imagery base layer
+      L.tileLayer(
+        "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+        {
+          attribution: "© Esri",
+          noWrap: true,
+        }
+      ).addTo(map);
       
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        attribution: "© OpenStreetMap",
-      }).addTo(map);
+      // CartoDB PositronOnlyLabels overlay layer (light-gray, semi-transparent)
+      const labelsLayer = L.tileLayer(
+        "https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png",
+        {
+          attribution: "© OpenStreetMap contributors © CARTO",
+          noWrap: true,
+          className: "map-labels-layer", // For CSS filtering
+        }
+      );
+      
+      // Add labels layer on top (will be above heatmap)
+      labelsLayer.addTo(map);
+      
+      // Store labels layer reference for potential toggling
+      const labelsLayerRef = { current: labelsLayer };
       
       const markers = L.layerGroup().addTo(map);
       markersRef.current = markers;
@@ -173,5 +201,10 @@ export default function MapCanvas({ token }: { token?: string }) {
     };
   }, [ready]);
 
-  return <div ref={mapRef} className="h-full w-full" />;
+  return (
+    <div
+      ref={mapRef}
+      className="h-full w-full map-cyber-theme"
+    />
+  );
 }

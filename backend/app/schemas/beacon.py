@@ -5,12 +5,14 @@ from typing import Optional
 class BeaconTierCreate(BaseModel):
     title: str
     order: int = 0
+    chapter_summary: Optional[str] = None
 
 
 class BeaconTierResponse(BaseModel):
     id: int
     title: str
     order: int
+    chapter_summary: Optional[str] = None
 
     class Config:
         from_attributes = True

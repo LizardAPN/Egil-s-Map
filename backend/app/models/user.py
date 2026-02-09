@@ -1,8 +1,15 @@
-from sqlalchemy import Column, String, Integer, Boolean, DateTime
+from enum import Enum as PyEnum
+from sqlalchemy import Column, String, Integer, Boolean, DateTime, Enum
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
 from app.core.database import Base
+
+
+class UserRole(PyEnum):
+    USER = "USER"
+    MODERATOR = "MODERATOR"
+    ADMIN = "ADMIN"
 
 
 class User(Base):
@@ -19,7 +26,14 @@ class User(Base):
     # Auth provider
     provider = Column(String(50), nullable=True)  # google, github, telegram, credentials
 
+    # RBAC fields
+    role = Column(Enum(UserRole), default=UserRole.USER, nullable=False, index=True)
+    is_shadow_banned = Column(Boolean, default=False, nullable=False)
+    is_muted = Column(Boolean, default=False, nullable=False)
+
     beacon_tiers = relationship("BeaconTier", back_populates="user")
     pins = relationship("LegacyPin", back_populates="user")
     inspirations_sent = relationship("Inspiration", foreign_keys="Inspiration.from_user_id", back_populates="from_user")
     led_strongholds = relationship("Stronghold", back_populates="leader")
+    reports_made = relationship("Report", foreign_keys="Report.reporter_id", back_populates="reporter")
+    reports_received = relationship("Report", foreign_keys="Report.reported_user_id", back_populates="reported_user")

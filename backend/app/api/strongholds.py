@@ -6,7 +6,7 @@ from geoalchemy2.shape import to_shape
 from pydantic import BaseModel
 
 from app.core.database import get_db
-from app.core.deps import get_current_user
+from app.core.deps import get_current_user, get_current_user_optional
 from app.models.user import User
 from app.models.stronghold import Stronghold, StrongholdMember
 
@@ -21,7 +21,10 @@ class StrongholdCreate(BaseModel):
 
 
 @router.get("")
-async def list_strongholds(db: AsyncSession = Depends(get_db)):
+async def list_strongholds(
+    db: AsyncSession = Depends(get_db),
+    user: User | None = Depends(get_current_user_optional),
+):
     result = await db.execute(
         select(Stronghold).order_by(Stronghold.created_at.desc())
     )
@@ -35,6 +38,15 @@ async def list_strongholds(db: AsyncSession = Depends(get_db)):
             .where(StrongholdMember.stronghold_id == s.id)
         )
         brightness = members_result.scalar() or 0
+        is_member = False
+        if user:
+            member_check = await db.execute(
+                select(StrongholdMember).where(
+                    StrongholdMember.stronghold_id == s.id,
+                    StrongholdMember.user_id == user.id,
+                )
+            )
+            is_member = member_check.scalar_one_or_none() is not None
         out.append({
             "id": s.id,
             "name": s.name,
@@ -42,6 +54,7 @@ async def list_strongholds(db: AsyncSession = Depends(get_db)):
             "lng": pt.x,
             "is_private": s.is_private,
             "brightness": brightness,
+            "is_member": is_member,
         })
     return out
 
@@ -52,6 +65,13 @@ async def create_stronghold(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    # Check if user is muted
+    if user.is_muted:
+        raise HTTPException(
+            status_code=403,
+            detail="Your account has been muted. You cannot create content.",
+        )
+    
     point = WKTElement(f"POINT({data.lng} {data.lat})", srid=4326)
     stronghold = Stronghold(
         name=data.name,
@@ -80,6 +100,13 @@ async def join_stronghold(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    # Check if user is muted
+    if user.is_muted:
+        raise HTTPException(
+            status_code=403,
+            detail="Your account has been muted. You cannot interact with content.",
+        )
+    
     result = await db.execute(select(Stronghold).where(Stronghold.id == stronghold_id))
     s = result.scalar_one_or_none()
     if not s:

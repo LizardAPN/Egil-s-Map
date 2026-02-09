@@ -12,6 +12,7 @@ class BeaconTier(Base):
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     title = Column(String(200), nullable=False)
     order = Column(Integer, default=0)
+    chapter_summary = Column(String(2000), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     user = relationship("User", back_populates="beacon_tiers")

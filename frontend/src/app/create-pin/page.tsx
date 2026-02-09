@@ -4,6 +4,10 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import dynamic from "next/dynamic";
+import AddressSearch from "@/components/AddressSearch";
+
+const MapPicker = dynamic(() => import("@/components/MapPicker"), { ssr: false });
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -17,6 +21,8 @@ export default function CreatePinPage() {
   const [file, setFile] = useState<File | null>(null);
   const [lat, setLat] = useState(55.75);
   const [lng, setLng] = useState(37.62);
+  const [locationLabel, setLocationLabel] = useState<string | null>(null);
+  const [mapPickerOpen, setMapPickerOpen] = useState(false);
   const [isPrivate, setIsPrivate] = useState(false);
   const [isEcho, setIsEcho] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -138,28 +144,43 @@ export default function CreatePinPage() {
               />
             </div>
           )}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm text-gray-400 mb-1">Latitude</label>
-              <input
-                type="number"
-                step="any"
-                value={lat}
-                onChange={(e) => setLat(Number(e.target.value))}
-                className="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-600"
-              />
-            </div>
-            <div>
-              <label className="block text-sm text-gray-400 mb-1">Longitude</label>
-              <input
-                type="number"
-                step="any"
-                value={lng}
-                onChange={(e) => setLng(Number(e.target.value))}
-                className="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-600"
-              />
+          <div>
+            <label className="block text-sm text-gray-400 mb-1">Location</label>
+            <AddressSearch
+              onSelect={({ lat: la, lng: ln, display_name }) => {
+                setLat(la);
+                setLng(ln);
+                setLocationLabel(display_name);
+              }}
+              placeholder="Search address..."
+              className="mb-2"
+            />
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setMapPickerOpen(true)}
+                className="px-4 py-2 rounded-lg bg-gray-800 border border-gray-600 text-amber-400 hover:bg-gray-700"
+              >
+                Pick on Map
+              </button>
+              {locationLabel && (
+                <span className="text-sm text-gray-400 truncate max-w-[200px]" title={locationLabel}>
+                  {locationLabel}
+                </span>
+              )}
             </div>
           </div>
+          <MapPicker
+            open={mapPickerOpen}
+            onClose={() => setMapPickerOpen(false)}
+            onPick={(la, ln) => {
+              setLat(la);
+              setLng(ln);
+              setLocationLabel(`Selected: ${la.toFixed(4)}, ${ln.toFixed(4)}`);
+            }}
+            initialLat={lat}
+            initialLng={lng}
+          />
           <div className="flex gap-4">
             <label className="flex items-center gap-2">
               <input

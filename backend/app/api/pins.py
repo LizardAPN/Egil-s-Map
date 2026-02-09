@@ -2,9 +2,11 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from geoalchemy2 import WKTElement
+from datetime import datetime, timezone, timedelta
 
 from app.core.database import get_db
 from app.core.deps import get_current_user
+from app.core.redis import get_daily_inspiration_count, increment_daily_inspiration_count
 from app.models.user import User
 from app.models.pin import LegacyPin
 from app.models.inspiration import Inspiration
@@ -51,6 +53,13 @@ async def create_pin(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    # Check if user is muted
+    if user.is_muted:
+        raise HTTPException(
+            status_code=403,
+            detail="Your account has been muted. You cannot create content.",
+        )
+    
     content_url = None
     if file:
         content = await file.read()
@@ -128,15 +137,33 @@ async def inspire_pin(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    from datetime import datetime, timezone, timedelta
-    today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
-    count_result = await db.execute(
-        select(func.count(Inspiration.id)).where(
-            Inspiration.from_user_id == user.id,
-            Inspiration.created_at >= today_start,
+    # Check if user is muted
+    if user.is_muted:
+        raise HTTPException(
+            status_code=403,
+            detail="Your account has been muted. You cannot interact with content.",
         )
-    )
-    daily_count = count_result.scalar() or 0
+    
+    # Check daily inspiration limit using Redis cache with DB fallback
+    now = datetime.now(timezone.utc)
+    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    tomorrow_start = today_start + timedelta(days=1)
+    ttl_seconds = int((tomorrow_start - now).total_seconds())
+    date_str = today_start.strftime("%Y-%m-%d")
+    
+    # Try Redis first
+    daily_count = await get_daily_inspiration_count(user.id, date_str)
+    
+    # Fallback to DB if Redis miss
+    if daily_count is None:
+        count_result = await db.execute(
+            select(func.count(Inspiration.id)).where(
+                Inspiration.from_user_id == user.id,
+                Inspiration.created_at >= today_start,
+            )
+        )
+        daily_count = count_result.scalar() or 0
+    
     if daily_count >= DAILY_INSPIRATION_LIMIT:
         raise HTTPException(
             status_code=429,
@@ -158,6 +185,10 @@ async def inspire_pin(
         raise HTTPException(status_code=400, detail="Already inspired")
     insp = Inspiration(from_user_id=user.id, to_pin_id=pin_id)
     db.add(insp)
+    
+    # Update Redis cache for daily count
+    await increment_daily_inspiration_count(user.id, date_str, ttl_seconds)
+    
     owner_result = await db.execute(select(User).where(User.id == pin.user_id))
     owner = owner_result.scalar_one()
     owner.total_inspiration_score = (owner.total_inspiration_score or 0) + 1

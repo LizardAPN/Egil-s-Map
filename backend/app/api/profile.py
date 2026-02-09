@@ -4,6 +4,7 @@ from sqlalchemy import select
 from geoalchemy2.shape import to_shape
 
 from app.core.database import get_db
+from app.core.deps import get_current_user_optional
 from app.models.user import User
 from app.models.beacon import BeaconTier
 from app.models.pin import LegacyPin
@@ -50,3 +51,31 @@ async def get_beacon(username: str, db: AsyncSession = Depends(get_db)):
         current_is_star=user.current_is_star or False,
         tiers=tier_responses,
     )
+
+
+@router.get("/{username}")
+async def get_profile(
+    username: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User | None = Depends(get_current_user_optional),
+):
+    """Get user profile including role (if viewing own profile or admin)."""
+    result = await db.execute(select(User).where(User.username == username))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Only return role if viewing own profile or if current user is admin
+    can_see_role = (
+        current_user is not None
+        and (current_user.id == user.id or current_user.role.value == "ADMIN")
+    )
+    
+    return {
+        "id": user.id,
+        "username": user.username,
+        "email": user.email,
+        "role": user.role.value if can_see_role else "USER",
+        "total_inspiration_score": user.total_inspiration_score,
+        "current_is_star": user.current_is_star,
+    }

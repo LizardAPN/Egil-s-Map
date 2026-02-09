@@ -24,3 +24,4 @@ class LegacyPin(Base):
     user = relationship("User", back_populates="pins")
     inspirations = relationship("Inspiration", back_populates="pin", lazy="selectin")
     echo_trigger = relationship("EchoTrigger", back_populates="pin", uselist=False)
+    reports = relationship("Report", back_populates="reported_pin")

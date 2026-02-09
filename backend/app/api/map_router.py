@@ -19,17 +19,37 @@ async def get_heatmap(
     db: AsyncSession = Depends(get_db),
 ):
     # Aggregate inspiration density by pin location
-    bbox = f"POLYGON(({min_lng} {min_lat}, {max_lng} {min_lat}, {max_lng} {max_lat}, {min_lng} {max_lat}, {min_lng} {min_lat}))"
+    # Use ST_DWithin with bounding box for better spatial index usage
+    # Calculate center point and approximate distance
+    center_lng = (min_lng + max_lng) / 2
+    center_lat = (min_lat + max_lat) / 2
+    # Approximate distance in meters (rough calculation for bounding box diagonal)
+    distance_meters = 111000 * ((max_lat - min_lat) ** 2 + (max_lng - min_lng) ** 2) ** 0.5
+    
     result = await db.execute(
         text("""
             SELECT ST_X(p.location::geometry) as lng, ST_Y(p.location::geometry) as lat,
                    COUNT(i.id)::float as intensity
             FROM legacy_pins p
             LEFT JOIN inspirations i ON i.to_pin_id = p.id
-            WHERE ST_Within(p.location::geometry, ST_GeomFromText(:bbox, 4326))
+            WHERE ST_DWithin(
+                p.location::geometry,
+                ST_SetSRID(ST_MakePoint(:center_lng, :center_lat), 4326)::geography,
+                :distance_meters
+            )
+            AND ST_X(p.location::geometry) BETWEEN :min_lng AND :max_lng
+            AND ST_Y(p.location::geometry) BETWEEN :min_lat AND :max_lat
             GROUP BY p.id, p.location
         """),
-        {"bbox": bbox.replace("POLYGON", "POLYGON").replace("  ", " ")},
+        {
+            "center_lng": center_lng,
+            "center_lat": center_lat,
+            "distance_meters": distance_meters,
+            "min_lng": min_lng,
+            "max_lng": max_lng,
+            "min_lat": min_lat,
+            "max_lat": max_lat,
+        },
     )
     rows = result.fetchall()
     return [
@@ -46,16 +66,35 @@ async def get_pins(
     max_lng: float = Query(...),
     db: AsyncSession = Depends(get_db),
 ):
-    bbox = f"POLYGON(({min_lng} {min_lat}, {max_lng} {min_lat}, {max_lng} {max_lat}, {min_lng} {max_lat}, {min_lng} {min_lat}))"
+    # Use ST_DWithin for better spatial index usage
+    center_lng = (min_lng + max_lng) / 2
+    center_lat = (min_lat + max_lat) / 2
+    # Approximate distance in meters
+    distance_meters = 111000 * ((max_lat - min_lat) ** 2 + (max_lng - min_lng) ** 2) ** 0.5
+    
     result = await db.execute(
         text("""
             SELECT p.id, p.tier_id, p.user_id, ST_X(p.location::geometry) as lng, ST_Y(p.location::geometry) as lat,
                    p.content_type, p.content_url, p.text_content, p.is_private, p.is_echo,
                    (SELECT COUNT(*) FROM inspirations WHERE to_pin_id = p.id) as insp_count
             FROM legacy_pins p
-            WHERE ST_Within(p.location::geometry, ST_GeomFromText(:bbox, 4326))
+            WHERE ST_DWithin(
+                p.location::geometry,
+                ST_SetSRID(ST_MakePoint(:center_lng, :center_lat), 4326)::geography,
+                :distance_meters
+            )
+            AND ST_X(p.location::geometry) BETWEEN :min_lng AND :max_lng
+            AND ST_Y(p.location::geometry) BETWEEN :min_lat AND :max_lat
         """),
-        {"bbox": bbox},
+        {
+            "center_lng": center_lng,
+            "center_lat": center_lat,
+            "distance_meters": distance_meters,
+            "min_lng": min_lng,
+            "max_lng": max_lng,
+            "min_lat": min_lat,
+            "max_lat": max_lat,
+        },
     )
     rows = result.fetchall()
     return [
