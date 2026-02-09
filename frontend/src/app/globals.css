@@ -11,35 +11,67 @@ body {
   font-family: system-ui, -apple-system, sans-serif;
 }
 
+/* Google Fonts utility classes */
+.font-cinzel {
+  font-family: 'Cinzel', serif;
+}
+
+.font-special-elite {
+  font-family: 'Special Elite', monospace;
+}
+
+/* Ink Calligraphy labels for map */
+.font-pinyon-script {
+  font-family: 'Pinyon Script', cursive;
+}
+
 /* Leaflet overrides */
 .leaflet-container {
   font-family: inherit;
 }
 
-/* Cyber-Viking map theme: dark/atmospheric satellite */
-.map-cyber-theme {
-  filter: brightness(0.5) contrast(1.2) saturate(0.8);
+/* Living Parchment: medieval fantasy map aesthetic */
+.map-medieval-theme {
+  filter: sepia(0.9) contrast(1.2) brightness(0.8) saturate(0.7);
+  position: relative;
 }
 
-/* Dark-mode Leaflet controls */
+/* Subtle SVG noise overlay - grain of old leather */
+.map-medieval-theme::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 1000;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.12'/%3E%3C/svg%3E");
+  opacity: 0.4;
+  mix-blend-mode: overlay;
+}
+
+/* Medieval parchment-themed Leaflet controls */
 .leaflet-control-zoom a {
-  background-color: rgba(17, 24, 39, 0.9) !important;
-  color: #fbbf24 !important;
-  border-color: rgba(75, 85, 99, 0.8) !important;
+  background-color: rgba(222, 184, 135, 0.9) !important;
+  color: #5c4033 !important;
+  border-color: rgba(139, 115, 85, 0.8) !important;
+  font-family: 'Cinzel', serif;
 }
 
 .leaflet-control-zoom a:hover {
-  background-color: rgba(31, 41, 55, 0.95) !important;
+  background-color: rgba(210, 180, 140, 0.95) !important;
 }
 
 .leaflet-control-attribution {
-  background-color: rgba(17, 24, 39, 0.8) !important;
-  color: #9ca3af !important;
+  background-color: rgba(222, 184, 135, 0.8) !important;
+  color: #5c4033 !important;
   font-size: 10px;
+  font-family: 'Special Elite', monospace;
 }
 
 .leaflet-control-attribution a {
-  color: #d1d5db !important;
+  color: #8b7355 !important;
 }
 
 /* Ghost marker for MapPicker - no default Leaflet marker styling */
@@ -48,8 +80,65 @@ body {
   border: none !important;
 }
 
-/* CartoDB labels layer styling - light-gray and semi-transparent */
+/* Pick on Map: Compass Rose / Dagger cursor */
+.map-picker-cursor .leaflet-container {
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath d='M12 2L14 8L20 8L14 12L16 18L12 14L8 18L10 12L4 8L10 8Z' fill='%23FFD700' stroke='%235D3A1A' stroke-width='1'/%3E%3C/svg%3E") 12 12, crosshair;
+}
+
+/* Ink Calligraphy labels - opacity controlled by zoom via JS */
 .map-labels-layer {
-  filter: grayscale(100%) opacity(0.7);
-  mix-blend-mode: overlay;
+  filter: grayscale(100%) sepia(0.5);
+  mix-blend-mode: multiply;
+  font-family: 'Pinyon Script', cursive !important;
+}
+
+/* Heatmap canvas blend mode for glowing effect */
+.leaflet-heatmap-layer {
+  mix-blend-mode: multiply !important;
+}
+
+/* Guardian Incognito: locked/private pins appear as faint Mist */
+.wax-seal-marker.guardian-mist {
+  opacity: 0.6;
+  filter: blur(0.3px);
+}
+
+/* Torn paper edge border utility */
+.torn-paper-border {
+  position: relative;
+  border: 2px solid #8b7355;
+  border-image: url("data:image/svg+xml,%3Csvg width='100' height='100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0,10 Q5,5 10,10 T20,10 T30,10 T40,10 T50,10 T60,10 T70,10 T80,10 T90,10 T100,10 L100,90 Q95,95 90,90 T80,90 T70,90 T60,90 T50,90 T40,90 T30,90 T20,90 T10,90 T0,90 Z' fill='none' stroke='%238b7355' stroke-width='2'/%3E%3C/svg%3E") 2;
+  background-color: rgba(245, 222, 179, 0.95);
+}
+
+/* Alternative torn paper effect using clip-path */
+.torn-paper-clip {
+  position: relative;
+  background-color: rgba(245, 222, 179, 0.95);
+  border: 2px solid #8b7355;
+  clip-path: polygon(
+    0% 5%, 2% 3%, 4% 5%, 6% 2%, 8% 5%, 10% 3%, 12% 6%, 14% 4%, 16% 7%, 18% 3%,
+    20% 6%, 22% 4%, 24% 7%, 26% 3%, 28% 6%, 30% 4%, 32% 7%, 34% 3%, 36% 6%, 38% 4%,
+    40% 7%, 42% 3%, 44% 6%, 46% 4%, 48% 7%, 50% 3%, 52% 6%, 54% 4%, 56% 7%, 58% 3%,
+    60% 6%, 62% 4%, 64% 7%, 66% 3%, 68% 6%, 70% 4%, 72% 7%, 74% 3%, 76% 6%, 78% 4%,
+    80% 7%, 82% 3%, 84% 6%, 86% 4%, 88% 7%, 90% 3%, 92% 6%, 94% 4%, 96% 7%, 98% 3%, 100% 5%,
+    100% 95%, 98% 97%, 96% 95%, 94% 98%, 92% 95%, 90% 97%, 88% 94%, 86% 96%, 84% 93%, 82% 97%,
+    80% 94%, 78% 96%, 76% 93%, 74% 97%, 72% 94%, 70% 96%, 68% 93%, 66% 97%, 64% 94%, 62% 96%,
+    60% 93%, 58% 97%, 56% 94%, 54% 96%, 52% 93%, 50% 97%, 48% 94%, 46% 96%, 44% 93%, 42% 97%,
+    40% 94%, 38% 96%, 36% 93%, 34% 97%, 32% 94%, 30% 96%, 28% 93%, 26% 97%, 24% 94%, 22% 96%,
+    20% 93%, 18% 97%, 16% 94%, 14% 96%, 12% 93%, 10% 97%, 8% 94%, 6% 96%, 4% 93%, 2% 97%, 0% 95%
+  );
+}
+
+/* Beacon flame flicker animation */
+@keyframes flame-flicker {
+  0%, 100% { transform: scaleY(1) scaleX(1); opacity: 1; }
+  25% { transform: scaleY(1.1) scaleX(0.95); opacity: 0.9; }
+  50% { transform: scaleY(0.95) scaleX(1.05); opacity: 0.95; }
+  75% { transform: scaleY(1.05) scaleX(0.98); opacity: 0.92; }
+}
+
+.beacon-flame-icon .flame-path {
+  animation: flame-flicker 2s ease-in-out infinite;
+  transform-origin: center bottom;
 }

@@ -1,5 +1,10 @@
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
+/** Treats null, undefined, "null", "undefined", and empty string as invalid. */
+export function isValidToken(token: string | undefined | null): token is string {
+  return !!token && typeof token === "string" && token.trim() !== "" && token !== "undefined" && token !== "null";
+}
+
 export async function apiFetch(
   path: string,
   options: RequestInit & { token?: string } = {}
@@ -9,7 +14,7 @@ export async function apiFetch(
     "Content-Type": "application/json",
     ...(rest.headers as Record<string, string>),
   };
-  if (token) {
+  if (isValidToken(token)) {
     (headers as Record<string, string>)["Authorization"] = `Bearer ${token}`;
   }
   const res = await fetch(`${API_BASE}${path}`, { ...rest, headers });
@@ -26,7 +31,7 @@ export async function apiPostForm(
   token?: string
 ) {
   const headers: HeadersInit = {};
-  if (token) {
+  if (isValidToken(token)) {
     (headers as Record<string, string>)["Authorization"] = `Bearer ${token}`;
   }
   const res = await fetch(`${API_BASE}${path}`, {

@@ -28,14 +28,23 @@ app = FastAPI(
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
+# Configure CORS - ensure preflight requests work properly
+# Include common dev ports (Next.js falls back when 3000 is in use)
+_cors_origins = [
+    "http://localhost:3000",
+    "http://localhost:3001",
+    "http://localhost:3002",
+    "http://localhost:3003",
+    "http://localhost:3004",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:3001",
+    "http://127.0.0.1:3002",
+    "http://127.0.0.1:3003",
+    "http://127.0.0.1:3004",
+]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-        "http://localhost:3001",
-        "http://127.0.0.1:3001",
-    ],
+    allow_origins=_cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -111,6 +120,7 @@ async def health():
     # Check S3
     try:
         import boto3
+        from botocore.config import Config
         from app.core.config import get_settings
         s3_settings = get_settings()
         s3_client = boto3.client(
@@ -119,8 +129,9 @@ async def health():
             aws_access_key_id=s3_settings.s3_access_key,
             aws_secret_access_key=s3_settings.s3_secret_key,
             region_name=s3_settings.s3_region,
+            config=Config(s3={'addressing_style': 'path'})
         )
-        s3_client.head_bucket(Bucket=s3_settings.s3_bucket)
+        s3_client.list_objects(Bucket=s3_settings.s3_bucket, MaxKeys=1)
         health_status["s3"] = "ok"
     except Exception as e:
         health_status["s3"] = f"error: {str(e)}"

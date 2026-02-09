@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useSession } from "next-auth/react";
+import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import AddressSearch from "@/components/AddressSearch";
+import { isValidToken } from "@/lib/api";
 
 const MapPicker = dynamic(() => import("@/components/MapPicker"), { ssr: false });
 
@@ -26,10 +27,10 @@ function CreateStrongholdForm({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!token) return;
+    if (!isValidToken(token)) return;
     setLoading(true);
     try {
-      await fetch(`${API_BASE}/strongholds`, {
+      const res = await fetch(`${API_BASE}/strongholds`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -37,17 +38,29 @@ function CreateStrongholdForm({
         },
         body: JSON.stringify({ name, lat, lng, is_private: false }),
       });
-      setName("");
-      setLocationLabel(null);
-      onCreated();
+      if (res.ok) {
+        setName("");
+        setLocationLabel(null);
+        onCreated();
+      } else {
+        const err = await res.json().catch(() => ({ detail: res.statusText }));
+        const msg = Array.isArray(err.detail)
+          ? err.detail.map((e: { msg?: string }) => e.msg || JSON.stringify(e)).join("; ")
+          : err.detail || "Failed to create stronghold";
+        console.error("API Error: create stronghold", msg, err);
+        alert(msg);
+      }
+    } catch (err) {
+      console.error("API Error: create stronghold", err);
+      alert("Failed to create stronghold. Please try again.");
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <form onSubmit={handleSubmit} className="mb-8 p-4 rounded-lg bg-gray-800 border border-gray-700">
-      <h2 className="font-medium mb-2">Create Stronghold</h2>
+    <form onSubmit={handleSubmit} className="mb-8 p-4 torn-paper-clip">
+      <h2 className="font-medium mb-2 font-cinzel">Create Stronghold</h2>
       <div className="space-y-4">
         <div>
           <input
@@ -55,12 +68,12 @@ function CreateStrongholdForm({
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Name"
-            className="w-full px-3 py-2 rounded bg-gray-700 border border-gray-600"
+            className="w-full px-3 py-2 torn-paper-clip bg-gray-700 border border-gray-600 font-special-elite"
             required
           />
         </div>
         <div>
-          <label className="block text-sm text-gray-400 mb-1">Location</label>
+          <label className="block text-sm text-gray-400 mb-1 font-special-elite">Location</label>
           <AddressSearch
             onSelect={({ lat: la, lng: ln, display_name }) => {
               setLat(la);
@@ -73,12 +86,12 @@ function CreateStrongholdForm({
             <button
               type="button"
               onClick={() => setMapPickerOpen(true)}
-              className="px-4 py-2 rounded-lg bg-gray-700/80 backdrop-blur border border-gray-600 text-amber-400 hover:bg-gray-600/80"
+              className="px-4 py-2 torn-paper-clip bg-gray-700/80 backdrop-blur border border-gray-600 text-amber-400 hover:bg-gray-600/80 font-cinzel"
             >
               Pick on Map
             </button>
             {locationLabel && (
-              <span className="text-sm text-gray-400 truncate max-w-[200px]" title={locationLabel}>
+              <span className="text-sm text-gray-400 truncate max-w-[200px] font-special-elite" title={locationLabel}>
                 {locationLabel}
               </span>
             )}
@@ -87,7 +100,7 @@ function CreateStrongholdForm({
         <button
           type="submit"
           disabled={loading}
-          className="px-4 py-2 rounded bg-amber-500 text-gray-900 font-medium"
+          className="px-4 py-2 torn-paper-clip bg-amber-500 text-gray-900 font-cinzel font-medium"
         >
           {loading ? "Creating..." : "Create"}
         </button>
@@ -115,7 +128,7 @@ function StrongholdsPage() {
   const token = (session as { accessToken?: string })?.accessToken;
 
   useEffect(() => {
-    const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
+    const headers: HeadersInit = isValidToken(token) ? { Authorization: `Bearer ${token}` } : {};
     fetch(`${API_BASE}/strongholds`, { headers })
       .then((r) => r.json())
       .then(setStrongholds)
@@ -125,10 +138,10 @@ function StrongholdsPage() {
   return (
     <main className="min-h-screen">
       <header className="flex items-center justify-between p-4 bg-gray-900/80 border-b border-gray-700">
-        <Link href="/" className="text-xl font-bold text-amber-400">
+        <Link href="/" className="text-xl font-bold text-amber-400 font-cinzel">
           Egil&apos;s Map
         </Link>
-        <nav className="flex gap-4">
+        <nav className="flex gap-4 font-cinzel">
           <Link href="/map">Map</Link>
           <Link href="/strongholds" className="text-amber-400">
             Strongholds
@@ -136,7 +149,9 @@ function StrongholdsPage() {
           {session ? (
             <>
               <Link href="/profile">Profile</Link>
-              <Link href="/api/auth/signout">Sign Out</Link>
+              <button type="button" onClick={() => signOut({ callbackUrl: "/" })} className="text-inherit hover:underline bg-transparent border-none cursor-pointer p-0 font-inherit">
+              Sign Out
+            </button>
             </>
           ) : (
             <Link href="/login">Sign In</Link>
@@ -144,8 +159,8 @@ function StrongholdsPage() {
         </nav>
       </header>
       <div className="p-8">
-        <h1 className="text-2xl font-bold mb-6">Strongholds</h1>
-        <p className="text-gray-400 mb-8">
+        <h1 className="text-2xl font-bold mb-6 font-cinzel">Strongholds</h1>
+        <p className="text-gray-400 mb-8 font-special-elite">
           Communities of light. Brightness is the sum of all members&apos; inspiration scores.
         </p>
         {session && (
@@ -158,21 +173,21 @@ function StrongholdsPage() {
           {strongholds.map((s) => (
             <div
               key={s.id}
-              className="p-4 rounded-lg bg-gray-800 border border-gray-700 flex justify-between items-center"
+              className="p-4 torn-paper-clip flex justify-between items-center"
             >
               <div>
-                <h2 className="font-medium">{s.name}</h2>
-                <p className="text-sm text-gray-400">
+                <h2 className="font-medium font-cinzel">{s.name}</h2>
+                <p className="text-sm text-gray-400 font-special-elite">
                   Brightness: {s.brightness} | {s.lat.toFixed(2)}, {s.lng.toFixed(2)}
                 </p>
               </div>
               {session && (
                 s.is_member ? (
-                  <span className="px-4 py-2 text-sm text-gray-400">Member</span>
+                  <span className="px-4 py-2 text-sm text-gray-400 font-special-elite">Member</span>
                 ) : (
                   <button
                     onClick={() => {
-                      if (!token) return;
+                      if (!isValidToken(token)) return;
                       fetch(`${API_BASE}/strongholds/${s.id}/join`, {
                         method: "POST",
                         headers: { Authorization: `Bearer ${token}` },
@@ -185,11 +200,22 @@ function StrongholdsPage() {
                               )
                             );
                           } else {
-                            r.json().then((e) => alert(e.detail || "Could not join"));
+                            r.json()
+                              .then((e) => {
+                                const msg = Array.isArray(e.detail)
+                                  ? e.detail.map((x: { msg?: string }) => x.msg || JSON.stringify(x)).join("; ")
+                                  : e.detail || "Could not join";
+                                console.error("API Error: join stronghold", msg, e);
+                                alert(msg);
+                              })
+                              .catch(() => {
+                                console.error("API Error: join stronghold", r.statusText);
+                                alert("Could not join");
+                              });
                           }
                         });
                     }}
-                    className="px-4 py-2 rounded-lg bg-amber-500/20 text-amber-400 border border-amber-500/50 hover:bg-amber-500/30"
+                    className="px-4 py-2 torn-paper-clip bg-amber-500/20 text-amber-400 border border-amber-500/50 hover:bg-amber-500/30 font-cinzel"
                   >
                     Join
                   </button>

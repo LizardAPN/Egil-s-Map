@@ -1,10 +1,12 @@
 "use client";
 
-import { useSession } from "next-auth/react";
+import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import type { BeaconTier } from "@/components/Beacon3D";
+import { motion, AnimatePresence } from "framer-motion";
+import type { BeaconTier } from "@/components/BeaconScene";
+import { isValidToken } from "@/lib/api";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -16,7 +18,7 @@ export default function ProfilePage() {
     tiers: BeaconTier[];
   } | null>(null);
   const [selectedTierId, setSelectedTierId] = useState<number | null>(null);
-  const [Beacon3D, setBeacon3D] = useState<
+  const [BeaconSceneComp, setBeaconSceneComp] = useState<
     React.ComponentType<{
       username: string;
       data?: { current_is_star: boolean; tiers: BeaconTier[] } | null;
@@ -29,7 +31,7 @@ export default function ProfilePage() {
   }, [status, router]);
 
   useEffect(() => {
-    void import("@/components/Beacon3D").then((m) => setBeacon3D(() => m.default));
+    void import("@/components/BeaconScene").then((m) => setBeaconSceneComp(() => m.default));
   }, []);
 
   useEffect(() => {
@@ -53,34 +55,40 @@ export default function ProfilePage() {
   if (status === "loading") return <div className="p-8">Loading...</div>;
 
   const username = session?.user?.name || "me";
-  const selectedTier = beaconData?.tiers.find((t) => t.id === selectedTierId) ?? null;
+  const selectedTier = beaconData?.tiers?.find((t) => t.id === selectedTierId) ?? null;
 
   return (
     <main className="min-h-screen">
       <header className="flex items-center justify-between p-4 bg-gray-900/80 border-b border-gray-700">
-        <Link href="/" className="text-xl font-bold text-amber-400">
+        <Link href="/" className="text-xl font-bold text-amber-400 font-cinzel">
           Egil&apos;s Map
         </Link>
-        <nav className="flex gap-4">
+        <nav className="flex gap-4 font-cinzel">
           <Link href="/map">Map</Link>
           <Link href="/strongholds">Strongholds</Link>
-          <Link href="/api/auth/signout">Sign Out</Link>
+          <button type="button" onClick={() => signOut({ callbackUrl: "/" })} className="text-inherit hover:underline bg-transparent border-none cursor-pointer p-0 font-inherit">
+          Sign Out
+        </button>
         </nav>
       </header>
       <div className="p-8">
-        <h1 className="text-2xl font-bold mb-6">Your Beacon</h1>
+        <h1 className="text-2xl font-bold mb-6 font-cinzel">Your Beacon</h1>
         <div className="mb-6">
-          <TierManager token={(session as { accessToken?: string })?.accessToken} />
+          <TierManager
+            token={(session as { accessToken?: string })?.accessToken}
+            onTierAdded={refreshBeacon}
+            isAuthenticated={status === "authenticated"}
+          />
         </div>
         <div className="h-[500px] rounded-lg overflow-hidden bg-gray-900">
-          {Beacon3D && (
-            <Beacon3D
+          {BeaconSceneComp && (
+            <BeaconSceneComp
               username={username}
               data={beaconData}
               onTierSelect={(tierId) => setSelectedTierId(tierId)}
             />
           )}
-          {!Beacon3D && (
+          {!BeaconSceneComp && (
             <div className="w-full h-full flex items-center justify-center text-gray-400">
               Loading...
             </div>
@@ -88,14 +96,17 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {selectedTier && (
-        <TierSideDrawer
-          tier={selectedTier}
-          onClose={() => setSelectedTierId(null)}
-          onUpdated={refreshBeacon}
-          token={(session as { accessToken?: string })?.accessToken}
-        />
-      )}
+      <AnimatePresence>
+        {selectedTier && (
+          <TierSideDrawer
+            key={selectedTier.id}
+            tier={selectedTier}
+            onClose={() => setSelectedTierId(null)}
+            onUpdated={refreshBeacon}
+            token={(session as { accessToken?: string })?.accessToken}
+          />
+        )}
+      </AnimatePresence>
     </main>
   );
 }
@@ -122,7 +133,7 @@ function TierSideDrawer({
   }, [tier.id, tier.title, tier.chapter_summary]);
 
   async function handleSave() {
-    if (!token) return;
+    if (!isValidToken(token)) return;
     setSaving(true);
     try {
       const res = await fetch(`${API_BASE}/beacon/${tier.id}`, {
@@ -139,8 +150,15 @@ function TierSideDrawer({
         setEditOpen(false);
       } else {
         const err = await res.json().catch(() => ({}));
-        alert(err.detail || "Failed to update");
+        const msg = Array.isArray(err.detail)
+          ? err.detail.map((e: { msg?: string }) => e.msg || JSON.stringify(e)).join("; ")
+          : err.detail || "Failed to update";
+        console.error("API Error: update tier", msg, err);
+        alert(msg);
       }
+    } catch (err) {
+      console.error("API Error: update tier", err);
+      alert("Failed to update. Please try again.");
     } finally {
       setSaving(false);
     }
@@ -148,13 +166,21 @@ function TierSideDrawer({
 
   return (
     <>
-      <div
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.2 }}
         className="fixed inset-0 z-40 bg-gray-900/50 backdrop-blur-sm"
         onClick={onClose}
         aria-hidden
       />
-      <aside
-        className="fixed top-0 right-0 z-50 w-full max-w-md h-full bg-gray-900/90 backdrop-blur-xl border-l border-gray-700 shadow-2xl overflow-y-auto"
+      <motion.aside
+        initial={{ x: "100%", clipPath: "inset(0 100% 0 0)" }}
+        animate={{ x: 0, clipPath: "inset(0 0% 0 0)" }}
+        exit={{ x: "100%", clipPath: "inset(0 100% 0 0)" }}
+        transition={{ type: "spring", damping: 25, stiffness: 200 }}
+        className="fixed top-0 right-0 z-50 w-full max-w-md h-full bg-gray-900/90 backdrop-blur-xl border-l border-amber-900/50 shadow-2xl overflow-y-auto torn-paper-clip"
         role="dialog"
         aria-label="Tier Chronicle"
       >
@@ -195,7 +221,7 @@ function TierSideDrawer({
             )}
           </div>
 
-          {token && (
+          {isValidToken(token) && (
             <button
               type="button"
               onClick={() => setEditOpen(true)}
@@ -205,7 +231,7 @@ function TierSideDrawer({
             </button>
           )}
         </div>
-      </aside>
+      </motion.aside>
 
       {editOpen && (
         <div
@@ -262,31 +288,45 @@ function TierSideDrawer({
   );
 }
 
-function TierManager({ token }: { token?: string }) {
+function TierManager({
+  token,
+  onTierAdded,
+  isAuthenticated,
+}: {
+  token?: string;
+  onTierAdded?: () => void;
+  isAuthenticated?: boolean;
+}) {
   const [tiers, setTiers] = useState<{ id: number; title: string; order: number }[]>([]);
   const [newTitle, setNewTitle] = useState("");
 
+  const validToken = isValidToken(token);
+
   useEffect(() => {
-    if (!token) return;
+    if (!validToken) return;
     fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/beacon`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then(async (r) => {
         if (!r.ok) {
           const error = await r.json().catch(() => ({ detail: r.statusText }));
-          throw new Error(error.detail || `HTTP ${r.status}`);
+          const msg = Array.isArray(error.detail)
+            ? error.detail.map((e: { msg?: string }) => e.msg || JSON.stringify(e)).join("; ")
+            : (error.detail || `HTTP ${r.status}`);
+          console.error("API Error: load tiers", msg, error);
+          throw new Error(typeof msg === "string" ? msg : JSON.stringify(msg));
         }
         return r.json();
       })
-      .then(setTiers)
+      .then((data) => setTiers(Array.isArray(data) ? data : []))
       .catch((err) => {
-        console.error("Failed to load tiers:", err);
+        console.error("Failed to load tiers:", err?.message, err);
         setTiers([]);
       });
-  }, [token]);
+  }, [validToken]);
 
   function addTier() {
-    if (!token || !newTitle.trim()) return;
+    if (!isValidToken(token) || !newTitle.trim()) return;
     fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/beacon`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
@@ -295,23 +335,35 @@ function TierManager({ token }: { token?: string }) {
       .then(async (r) => {
         if (!r.ok) {
           const error = await r.json().catch(() => ({ detail: r.statusText }));
-          throw new Error(error.detail || `HTTP ${r.status}`);
+          const msg = Array.isArray(error.detail)
+            ? error.detail.map((e: { msg?: string }) => e.msg || JSON.stringify(e)).join("; ")
+            : (error.detail || `HTTP ${r.status}`);
+          console.error("API Error: add tier", msg, error);
+          throw new Error(typeof msg === "string" ? msg : JSON.stringify(msg));
         }
         return r.json();
       })
       .then((t) => {
         setTiers([...tiers, t]);
         setNewTitle("");
+        onTierAdded?.();
       })
       .catch((err) => {
-        console.error("Failed to add tier:", err);
+        console.error("Failed to add tier:", err?.message, err);
         alert(`Failed to add tier: ${err.message}`);
       });
   }
 
+  const hasSessionNoToken = isAuthenticated && !validToken;
+
   return (
     <div className="p-4 rounded-lg bg-gray-800 border border-gray-700">
       <h2 className="font-medium mb-2">Beacon Tiers (Life Chapters)</h2>
+      {hasSessionNoToken && (
+        <p className="text-amber-400 text-sm mb-4">
+          Please sign out and sign in again to use tier features.
+        </p>
+      )}
       <ul className="space-y-1 mb-4">
         {tiers.map((t) => (
           <li key={t.id} className="text-gray-300">

@@ -1,3 +1,4 @@
+import logging
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -9,6 +10,7 @@ from app.models.beacon import BeaconTier
 from app.schemas.beacon import BeaconTierCreate, BeaconTierResponse
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 @router.get("", response_model=list[BeaconTierResponse])
@@ -34,16 +36,20 @@ async def create_tier(
             status_code=403,
             detail="Your account has been muted. You cannot create content.",
         )
-    
-    tier = BeaconTier(
-        user_id=user.id,
-        title=data.title,
-        order=data.order,
-    )
-    db.add(tier)
-    await db.flush()
-    await db.refresh(tier)
-    return tier
+
+    try:
+        tier = BeaconTier(
+            user_id=user.id,
+            title=data.title,
+            order=data.order,
+        )
+        db.add(tier)
+        await db.flush()
+        await db.refresh(tier)
+        return tier
+    except Exception as e:
+        logger.error("Beacon tier persistence error: %s", e, exc_info=True)
+        raise
 
 
 @router.put("/{tier_id}", response_model=BeaconTierResponse)

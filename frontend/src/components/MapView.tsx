@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { useSession } from "next-auth/react";
+import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 
@@ -19,15 +19,18 @@ export default function MapView() {
   return (
     <div className="h-full flex flex-col">
       <header className="flex items-center justify-between p-4 bg-gray-900/80 border-b border-gray-700 z-10">
-        <Link href="/" className="text-xl font-bold text-amber-400">Egil&apos;s Map</Link>
-        <nav className="flex gap-4">
+        <Link href="/" className="text-xl font-bold text-amber-400 font-cinzel">Egil&apos;s Map</Link>
+        <nav className="flex gap-4 font-cinzel">
           <Link href="/map" className="text-amber-400">Map</Link>
           <Link href="/strongholds">Strongholds</Link>
           {status === "authenticated" ? (
             <>
               <Link href="/create-pin">Add Pin</Link>
               <Link href="/profile">Profile</Link>
-              <Link href="/api/auth/signout">Sign Out</Link>
+              <Link href="/admin">Admin</Link>
+              <button type="button" onClick={() => signOut({ callbackUrl: "/" })} className="text-inherit hover:underline bg-transparent border-none cursor-pointer p-0 font-inherit">
+              Sign Out
+            </button>
             </>
           ) : (
             <Link href="/login">Sign In</Link>

@@ -1,4 +1,5 @@
 from typing import Optional
+import logging
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials, APIKeyHeader
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -8,6 +9,7 @@ from .database import get_db, AsyncSessionLocal
 from .security import decode_access_token
 from app.models.user import User, UserRole
 
+logger = logging.getLogger(__name__)
 security = HTTPBearer(auto_error=False)
 api_key_header = APIKeyHeader(name="X-Auth-Token", auto_error=False)
 
@@ -23,15 +25,17 @@ async def get_current_user_optional(
     elif x_token:
         token = x_token
 
-    if not token:
+    if not token or token.strip() in ("", "undefined", "null"):
         return None
 
     payload = decode_access_token(token)
     if not payload:
+        logger.debug("Auth failed: token decode failed (invalid or expired)")
         return None
 
     user_id = payload.get("sub")
     if not user_id:
+        logger.debug("Auth failed: no sub in token payload")
         return None
 
     # Convert user_id to integer since User.id is an integer column
@@ -42,11 +46,18 @@ async def get_current_user_optional(
 
     result = await db.execute(select(User).where(User.id == user_id_int))
     user = result.scalar_one_or_none()
-    
-    # If user is shadow banned, return None (they appear as not authenticated)
-    if user and user.is_shadow_banned:
+    if not user:
+        logger.debug("Auth failed: user not found for sub=%s", user_id)
         return None
-    
+
+    # Debug logging for role
+    logger.debug(f"User authenticated: id={user.id}, username={user.username}, role={user.role.value}")
+
+    # If user is shadow banned, return None (they appear as not authenticated)
+    if user.is_shadow_banned:
+        logger.debug("Auth failed: user shadow banned")
+        return None
+
     return user
 
 
@@ -54,6 +65,7 @@ async def get_current_user(
     user: Optional[User] = Depends(get_current_user_optional),
 ) -> User:
     if user is None:
+        logger.warning("Protected route: not authenticated (missing/invalid token or user not found)")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Not authenticated",

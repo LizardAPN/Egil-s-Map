@@ -20,11 +20,15 @@ declare module "leaflet" {
   ): L.Layer;
 }
 
+/* Parchment base color - used as tile layer placeholder for "Living Parchment" */
+const PARCHMENT_BASE = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='256' height='256'%3E%3Crect fill='%23e8d5b7' width='256' height='256'/%3E%3C/svg%3E";
+
 export default function MapCanvas({ token }: { token?: string }) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const heatLayerRef = useRef<L.Layer | null>(null);
   const markersRef = useRef<L.LayerGroup | null>(null);
+  const labelsLayerRef = useRef<L.TileLayer | null>(null);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
@@ -47,30 +51,46 @@ export default function MapCanvas({ token }: { token?: string }) {
         worldCopyJump: false,
       }).setView([20, 0], 2);
 
-      // Esri World Imagery base layer
+      // 1. Base: Parchment texture (solid parchment tile)
+      L.tileLayer(PARCHMENT_BASE, {
+        attribution: "",
+        noWrap: true,
+        minZoom: 0,
+        maxZoom: 22,
+      }).addTo(map);
+
+      // 2. Ink-style monochrome map overlay
       L.tileLayer(
-        "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+        "https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png",
         {
-          attribution: "© Esri",
+          attribution: "© OpenStreetMap contributors © CARTO",
           noWrap: true,
+          opacity: 0.85,
         }
       ).addTo(map);
       
-      // CartoDB PositronOnlyLabels overlay layer (light-gray, semi-transparent)
+      // 3. Ink Calligraphy labels - opacity = 0 at low zoom, fade in smoothly as user zooms
       const labelsLayer = L.tileLayer(
         "https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png",
         {
           attribution: "© OpenStreetMap contributors © CARTO",
           noWrap: true,
-          className: "map-labels-layer", // For CSS filtering
+          className: "map-labels-layer",
         }
       );
-      
-      // Add labels layer on top (will be above heatmap)
       labelsLayer.addTo(map);
-      
-      // Store labels layer reference for potential toggling
-      const labelsLayerRef = { current: labelsLayer };
+      labelsLayerRef.current = labelsLayer;
+
+      // Ink Calligraphy labels: opacity 0 at low zoom, fade in smoothly as user zooms
+      function updateLabelsOpacity() {
+        const z = map!.getZoom();
+        const minZ = 2.5;
+        const maxZ = 6;
+        const opacity = Math.max(0, Math.min(1, (z - minZ) / (maxZ - minZ)));
+        labelsLayer.setOpacity(opacity);
+      }
+      updateLabelsOpacity();
+      map.on("zoomend", updateLabelsOpacity);
       
       const markers = L.layerGroup().addTo(map);
       markersRef.current = markers;
@@ -106,10 +126,12 @@ export default function MapCanvas({ token }: { token?: string }) {
         clearTimeout(timer);
       }
       if (map) {
+        map.off("zoomend");
         map.remove();
       }
       mapInstanceRef.current = null;
       markersRef.current = null;
+      labelsLayerRef.current = null;
       setReady(false);
     };
   }, []);
@@ -152,22 +174,51 @@ export default function MapCanvas({ token }: { token?: string }) {
           mapInstanceRef.current.removeLayer(heatLayerRef.current);
         }
         
+        // Golden Glow: transparent -> gold -> orange-fire (light shining through paper)
         heatLayerRef.current = (L as { heatLayer: (p: [number, number, number][], o?: object) => L.Layer }).heatLayer(
           points,
           {
             radius: 25,
             blur: 15,
-            gradient: { 0.4: "blue", 0.65: "lime", 1: "rgba(251, 191, 36, 0.8)" },
+            gradient: { 
+              0: "rgba(255, 215, 0, 0)",      // transparent
+              0.5: "rgba(255, 215, 0, 0.5)",  // gold #FFD700
+              1: "rgba(255, 140, 0, 0.9)",    // orange-fire #FF8C00
+            },
           }
         );
         heatLayerRef.current.addTo(mapInstanceRef.current);
+        
+        // Apply blend mode for "glowing from under paper" effect
+        setTimeout(() => {
+          const heatCanvas = (heatLayerRef.current as any)?._canvas;
+          if (heatCanvas) {
+            heatCanvas.style.mixBlendMode = "multiply";
+          }
+        }, 100);
 
         if (markersRef.current) {
           markersRef.current.clearLayers();
-          for (const pin of pinsData as { id: number; lat: number; lng: number; content_type: string; is_private: boolean }[]) {
+          for (const pin of pinsData as { id: number; lat: number; lng: number; content_type: string; is_private: boolean; is_echo?: boolean }[]) {
+            // Guardian Incognito: locked/private pins appear as faint Mist
+            const isMist = pin.is_private || pin.is_echo;
+            const iconSvgString = `
+              <svg width="28" height="28" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="16" cy="16" r="14" fill="${isMist ? "rgba(180,180,200,0.4)" : "#8B4513"}" stroke="${isMist ? "rgba(120,120,140,0.5)" : "#5D3A1A"}" stroke-width="1.5"/>
+                ${pin.is_private ? `
+                  <line x1="16" y1="8" x2="16" y2="24" stroke="${isMist ? "rgba(120,120,140,0.5)" : "#5D3A1A"}" stroke-width="2" stroke-linecap="round"/>
+                  <line x1="8" y1="16" x2="24" y2="16" stroke="${isMist ? "rgba(120,120,140,0.5)" : "#5D3A1A"}" stroke-width="2" stroke-linecap="round"/>
+                  <circle cx="16" cy="16" r="2" fill="${isMist ? "rgba(120,120,140,0.6)" : "#5D3A1A"}" opacity="0.6"/>
+                ` : `
+                  <circle cx="16" cy="16" r="4" fill="${isMist ? "rgba(120,120,140,0.8)" : "#5D3A1A"}" opacity="0.8"/>
+                `}
+              </svg>
+            `;
             const icon = L.divIcon({
-              className: "pin-marker",
-              html: `<div class="w-4 h-4 rounded-full ${pin.is_private ? "bg-gray-500" : "bg-amber-500"} border-2 border-white"></div>`,
+              className: `pin-marker wax-seal-marker ${isMist ? "guardian-mist" : ""}`,
+              html: iconSvgString,
+              iconSize: [28, 28],
+              iconAnchor: [14, 14],
             });
             const m = L.marker([pin.lat, pin.lng], { icon }).addTo(markersRef.current);
             m.bindPopup(`<a href="/pins/${pin.id}">Pin #${pin.id}</a>`);
@@ -204,7 +255,7 @@ export default function MapCanvas({ token }: { token?: string }) {
   return (
     <div
       ref={mapRef}
-      className="h-full w-full map-cyber-theme"
+      className="h-full w-full map-medieval-theme"
     />
   );
 }

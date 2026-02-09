@@ -8,6 +8,11 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        cinzel: ["Cinzel", "serif"],
+        "special-elite": ["Special Elite", "monospace"],
+        "pinyon-script": ["Pinyon Script", "cursive"],
+      },
       colors: {
         beacon: {
           amber: "#f59e0b",

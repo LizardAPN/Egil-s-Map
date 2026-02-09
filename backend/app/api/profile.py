@@ -44,7 +44,13 @@ async def get_beacon(username: str, db: AsyncSession = Depends(get_db)):
                 )
             )
         tier_responses.append(
-            BeaconTierWithPins(id=tier.id, title=tier.title, order=tier.order, pins=pin_list)
+            BeaconTierWithPins(
+                id=tier.id,
+                title=tier.title,
+                order=tier.order,
+                chapter_summary=tier.chapter_summary,
+                pins=pin_list,
+            )
         )
     return BeaconResponse(
         username=user.username,
@@ -60,16 +66,28 @@ async def get_profile(
     current_user: User | None = Depends(get_current_user_optional),
 ):
     """Get user profile including role (if viewing own profile or admin)."""
+    import logging
+    logger = logging.getLogger(__name__)
+    
     result = await db.execute(select(User).where(User.username == username))
     user = result.scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+    
+    # Debug logging
+    logger.info(f"Profile request for username={username}, user_id={user.id}, user_role={user.role.value}")
+    if current_user:
+        logger.info(f"Current user: id={current_user.id}, username={current_user.username}, role={current_user.role.value}")
+    else:
+        logger.info("Current user is None (not authenticated)")
     
     # Only return role if viewing own profile or if current user is admin
     can_see_role = (
         current_user is not None
         and (current_user.id == user.id or current_user.role.value == "ADMIN")
     )
+    
+    logger.info(f"can_see_role={can_see_role}, returning role={user.role.value if can_see_role else 'USER'}")
     
     return {
         "id": user.id,

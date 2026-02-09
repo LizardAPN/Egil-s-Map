@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Body
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+import logging
 
 from app.core.database import get_db
 from app.core.security import get_password_hash, verify_password, create_access_token
@@ -9,10 +10,13 @@ from app.models.user import User
 from app.schemas.user import UserCreate, UserResponse, Token
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 @router.post("/register", response_model=UserResponse)
 async def register(user_data: UserCreate, db: AsyncSession = Depends(get_db)):
+    # Debug logging to track if request reaches backend
+    logger.info(f"Registration request received for username: {user_data.username}")
     result = await db.execute(select(User).where(User.username == user_data.username))
     if result.scalar_one_or_none():
         raise HTTPException(status_code=400, detail="Username already exists")

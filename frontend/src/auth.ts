@@ -49,7 +49,10 @@ export const authOptions: NextAuthOptions = {
         token.email = (user as { email?: string }).email;
         token.name = (user as { name?: string }).name;
       }
-      if (user && account?.provider !== "credentials" && !token.accessToken && (token.email || token.name)) {
+      // OAuth: fetch backend token on sign-in or retry if missing (e.g. prior oauth-sync failed)
+      const needsOAuthSync =
+        (user && account?.provider !== "credentials") || (!token.accessToken && (token.email || token.name));
+      if (needsOAuthSync && !token.accessToken && (token.email || token.name)) {
         try {
           const res = await fetch(`${API_BASE}/auth/oauth-sync`, {
             method: "POST",
@@ -63,9 +66,12 @@ export const authOptions: NextAuthOptions = {
           if (res.ok) {
             const data = await res.json();
             token.accessToken = data.access_token;
+          } else {
+            const errText = await res.text().catch(() => "");
+            console.error("oauth-sync failed:", res.status, errText);
           }
-        } catch {
-          // ignore
+        } catch (e) {
+          console.error("oauth-sync request failed:", e);
         }
       }
       return token;

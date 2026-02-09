@@ -1,8 +1,11 @@
+import logging
 import bcrypt
 from datetime import datetime, timedelta
 from typing import Optional
 from jose import JWTError, jwt
 from .config import get_settings
+
+logger = logging.getLogger(__name__)
 
 settings = get_settings()
 ALGORITHM = "HS256"
@@ -51,5 +54,11 @@ def decode_access_token(token: str) -> Optional[dict]:
     try:
         payload = jwt.decode(token, settings.auth_secret, algorithms=[ALGORITHM])
         return payload
-    except JWTError:
+    except JWTError as e:
+        # Log token length and error type (never log the token itself)
+        logger.warning(
+            "JWT decode failed: %s (token_len=%d)",
+            str(e),
+            len(token) if token else 0,
+        )
         return None

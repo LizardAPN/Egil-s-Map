@@ -3,7 +3,7 @@
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, isValidToken } from "@/lib/api";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -48,14 +48,14 @@ export default function AdminPage() {
       return;
     }
 
-    if (status === "authenticated" && token) {
+    if (status === "authenticated" && isValidToken(token)) {
       // Check if user is admin
       checkAdminAccess();
     }
   }, [status, token, router]);
 
   async function checkAdminAccess() {
-    if (!token) return;
+    if (!isValidToken(token)) return;
     try {
       // Fetch user profile to check role
       const username = session?.user?.name;
@@ -63,8 +63,10 @@ export default function AdminPage() {
       
       const profile = await apiFetch(`/profile/${encodeURIComponent(username)}`, { token });
       
+      console.log("Profile response:", profile); // Debug log
+      
       if (profile.role !== "ADMIN") {
-        setError("Access denied. Admin role required.");
+        setError(`Access denied. Your role is: ${profile.role}. Admin role required. Please log out and log back in to refresh your session.`);
         setLoading(false);
         return;
       }
@@ -72,7 +74,8 @@ export default function AdminPage() {
       setUserRole(profile.role);
       await loadData();
     } catch (err) {
-      setError("Failed to verify admin access");
+      console.error("Admin access check error:", err);
+      setError(`Failed to verify admin access: ${err instanceof Error ? err.message : String(err)}`);
       setLoading(false);
     }
   }
@@ -144,7 +147,16 @@ export default function AdminPage() {
     return (
       <div className="p-8">
         <h1 className="text-2xl font-bold mb-4">Admin Dashboard</h1>
-        <div className="text-red-500">{error}</div>
+        <div className="text-red-500 mb-4">{error}</div>
+        <div className="bg-yellow-900/50 border border-yellow-700 rounded-lg p-4">
+          <h3 className="font-semibold mb-2">Troubleshooting:</h3>
+          <ol className="list-decimal list-inside space-y-2">
+            <li>Make sure you've logged out and logged back in after your role was updated</li>
+            <li>Check the browser console (F12) for detailed error messages</li>
+            <li>Verify your role in the database: <code className="bg-gray-800 px-2 py-1 rounded">SELECT username, role FROM users WHERE username = 'LizardAPN';</code></li>
+            <li>If the issue persists, try clearing your browser cache and cookies</li>
+          </ol>
+        </div>
       </div>
     );
   }

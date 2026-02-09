@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { InspirationalModal } from "@/components/InspirationalModal";
+import { isValidToken } from "@/lib/api";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -31,7 +32,7 @@ export default function PinPage() {
 
   function handleInspire() {
     const token = (session as { accessToken?: string })?.accessToken;
-    if (!token) {
+    if (!isValidToken(token)) {
       setInspireError("Sign in to inspire");
       return;
     }

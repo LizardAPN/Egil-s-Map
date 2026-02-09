@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import AddressSearch from "@/components/AddressSearch";
+import { isValidToken } from "@/lib/api";
 
 const MapPicker = dynamic(() => import("@/components/MapPicker"), { ssr: false });
 
@@ -34,19 +35,28 @@ export default function CreatePinPage() {
   }, [status, router]);
 
   useEffect(() => {
-    if (!token) return;
+    if (!isValidToken(token)) return;
     fetch(`${API_BASE}/beacon`, { headers: { Authorization: `Bearer ${token}` } })
-      .then((r) => r.json())
-      .then((data: { id: number; title: string }[]) => {
-        setTiers(data);
-        if (data.length > 0 && !tierId) setTierId(data[0].id);
+      .then(async (r) => {
+        const data = await r.json();
+        if (!r.ok) {
+          console.error("API Error: load beacon tiers", r.status, data);
+          setTiers([]);
+          return;
+        }
+        const list = Array.isArray(data) ? data : [];
+        setTiers(list);
+        if (list.length > 0 && !tierId) setTierId(list[0].id);
       })
-      .catch(() => setTiers([]));
+      .catch((err) => {
+        console.error("Failed to load beacon tiers:", err);
+        setTiers([]);
+      });
   }, [token]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!token || !tierId) return;
+    if (!isValidToken(token) || !tierId) return;
     setLoading(true);
     const form = new FormData();
     form.append("tier_id", String(tierId));
@@ -78,16 +88,16 @@ export default function CreatePinPage() {
   return (
     <main className="min-h-screen p-8">
       <header className="mb-8">
-        <Link href="/map" className="text-amber-400 hover:underline">
+        <Link href="/map" className="text-amber-400 hover:underline font-cinzel">
           ← Back to Map
         </Link>
       </header>
-      <div className="max-w-md">
-        <h1 className="text-2xl font-bold mb-6">Create Pin</h1>
+      <div className="max-w-md torn-paper-clip p-6">
+        <h1 className="text-2xl font-bold mb-6 font-cinzel">Create Pin</h1>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Tier (life chapter)</label>
-            {tiers.length === 0 ? (
+            <label className="block text-sm text-gray-400 mb-1 font-special-elite">Tier (life chapter)</label>
+            {!Array.isArray(tiers) || tiers.length === 0 ? (
               <p className="text-amber-400">
                 Create a tier first in your{" "}
                 <Link href="/profile" className="underline">
@@ -99,7 +109,7 @@ export default function CreatePinPage() {
               <select
                 value={tierId ?? ""}
                 onChange={(e) => setTierId(Number(e.target.value))}
-                className="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-600"
+                className="w-full px-4 py-2 torn-paper-clip bg-gray-800 border border-gray-600 font-special-elite"
                 required
               >
                 {tiers.map((t) => (
@@ -111,11 +121,11 @@ export default function CreatePinPage() {
             )}
           </div>
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Content Type</label>
+            <label className="block text-sm text-gray-400 mb-1 font-special-elite">Content Type</label>
             <select
               value={contentType}
               onChange={(e) => setContentType(e.target.value as "photo" | "video" | "text")}
-              className="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-600"
+              className="w-full px-4 py-2 torn-paper-clip bg-gray-800 border border-gray-600 font-special-elite"
             >
               <option value="text">Text</option>
               <option value="photo">Photo</option>
@@ -124,18 +134,18 @@ export default function CreatePinPage() {
           </div>
           {contentType === "text" && (
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Content</label>
+              <label className="block text-sm text-gray-400 mb-1 font-special-elite">Content</label>
               <textarea
                 value={textContent}
                 onChange={(e) => setTextContent(e.target.value)}
-                className="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-600"
+                className="w-full px-4 py-2 torn-paper-clip bg-gray-800 border border-gray-600 font-special-elite"
                 rows={4}
               />
             </div>
           )}
           {(contentType === "photo" || contentType === "video") && (
             <div>
-              <label className="block text-sm text-gray-400 mb-1">File</label>
+              <label className="block text-sm text-gray-400 mb-1 font-special-elite">File</label>
               <input
                 type="file"
                 accept={contentType === "photo" ? "image/*" : "video/*"}
@@ -145,7 +155,7 @@ export default function CreatePinPage() {
             </div>
           )}
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Location</label>
+            <label className="block text-sm text-gray-400 mb-1 font-special-elite">Location</label>
             <AddressSearch
               onSelect={({ lat: la, lng: ln, display_name }) => {
                 setLat(la);
@@ -159,7 +169,7 @@ export default function CreatePinPage() {
               <button
                 type="button"
                 onClick={() => setMapPickerOpen(true)}
-                className="px-4 py-2 rounded-lg bg-gray-800 border border-gray-600 text-amber-400 hover:bg-gray-700"
+                className="px-4 py-2 torn-paper-clip bg-gray-800 border border-gray-600 text-amber-400 hover:bg-gray-700 font-cinzel"
               >
                 Pick on Map
               </button>
@@ -202,7 +212,7 @@ export default function CreatePinPage() {
           <button
             type="submit"
             disabled={loading || tiers.length === 0}
-            className="w-full py-2 rounded-lg bg-amber-500 text-gray-900 font-medium hover:bg-amber-400 disabled:opacity-50"
+            className="w-full py-2 torn-paper-clip bg-amber-500 text-gray-900 font-cinzel font-medium hover:bg-amber-400 disabled:opacity-50"
           >
             {loading ? "Creating..." : "Create Pin"}
           </button>

@@ -1,11 +1,9 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, text
-from geoalchemy2.functions import ST_X, ST_Y, ST_AsText
+from sqlalchemy import text
 
 from app.core.database import get_db
-from app.models.pin import LegacyPin
-from app.models.inspiration import Inspiration
+from app.core.redis import get_heatmap_cached, set_heatmap_cached
 
 router = APIRouter()
 
@@ -18,14 +16,17 @@ async def get_heatmap(
     max_lng: float = Query(...),
     db: AsyncSession = Depends(get_db),
 ):
+    # Try Redis cache first
+    cached = await get_heatmap_cached(min_lat, max_lat, min_lng, max_lng)
+    if cached is not None:
+        return cached
+
     # Aggregate inspiration density by pin location
-    # Use ST_DWithin with bounding box for better spatial index usage
-    # Calculate center point and approximate distance
+    # Use ST_DWithin (PostGIS) for spatial index usage
     center_lng = (min_lng + max_lng) / 2
     center_lat = (min_lat + max_lat) / 2
-    # Approximate distance in meters (rough calculation for bounding box diagonal)
     distance_meters = 111000 * ((max_lat - min_lat) ** 2 + (max_lng - min_lng) ** 2) ** 0.5
-    
+
     result = await db.execute(
         text("""
             SELECT ST_X(p.location::geometry) as lng, ST_Y(p.location::geometry) as lat,
@@ -52,10 +53,12 @@ async def get_heatmap(
         },
     )
     rows = result.fetchall()
-    return [
+    data = [
         {"lat": row[1], "lng": row[0], "intensity": max(0.1, min(1.0, row[2] / 10))}
         for row in rows
     ]
+    await set_heatmap_cached(min_lat, max_lat, min_lng, max_lng, data)
+    return data
 
 
 @router.get("/pins")

@@ -1,3 +1,4 @@
+import logging
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
@@ -11,6 +12,7 @@ from app.models.user import User
 from app.models.stronghold import Stronghold, StrongholdMember
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 class StrongholdCreate(BaseModel):
@@ -71,27 +73,31 @@ async def create_stronghold(
             status_code=403,
             detail="Your account has been muted. You cannot create content.",
         )
-    
-    point = WKTElement(f"POINT({data.lng} {data.lat})", srid=4326)
-    stronghold = Stronghold(
-        name=data.name,
-        is_private=data.is_private,
-        location=point,
-        leader_id=user.id,
-    )
-    db.add(stronghold)
-    await db.flush()
-    member = StrongholdMember(stronghold_id=stronghold.id, user_id=user.id)
-    db.add(member)
-    await db.flush()
-    pt = to_shape(stronghold.location)
-    return {
-        "id": stronghold.id,
-        "name": stronghold.name,
-        "lat": pt.y,
-        "lng": pt.x,
-        "is_private": stronghold.is_private,
-    }
+
+    try:
+        point = WKTElement(f"POINT({data.lng} {data.lat})", srid=4326)
+        stronghold = Stronghold(
+            name=data.name,
+            is_private=data.is_private,
+            location=point,
+            leader_id=user.id,
+        )
+        db.add(stronghold)
+        await db.flush()
+        member = StrongholdMember(stronghold_id=stronghold.id, user_id=user.id)
+        db.add(member)
+        await db.flush()
+        pt = to_shape(stronghold.location)
+        return {
+            "id": stronghold.id,
+            "name": stronghold.name,
+            "lat": pt.y,
+            "lng": pt.x,
+            "is_private": stronghold.is_private,
+        }
+    except Exception as e:
+        logger.error("Stronghold persistence error: %s", e, exc_info=True)
+        raise
 
 
 @router.post("/{stronghold_id}/join")
@@ -119,6 +125,11 @@ async def join_stronghold(
     )
     if existing.scalar_one_or_none():
         raise HTTPException(status_code=400, detail="Already a member")
-    member = StrongholdMember(stronghold_id=stronghold_id, user_id=user.id)
-    db.add(member)
-    return {"status": "joined"}
+    try:
+        member = StrongholdMember(stronghold_id=stronghold_id, user_id=user.id)
+        db.add(member)
+        await db.flush()
+        return {"status": "joined"}
+    except Exception as e:
+        logger.error("Stronghold join persistence error: %s", e, exc_info=True)
+        raise
