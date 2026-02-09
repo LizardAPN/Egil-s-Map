@@ -72,4 +72,5 @@ async def delete_tier(
     if not tier:
         raise HTTPException(status_code=404, detail="Tier not found")
     await db.delete(tier)
+    await db.flush()
     return {"status": "deleted"}

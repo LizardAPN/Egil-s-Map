@@ -52,9 +52,18 @@ function TierManager({ token }: { token?: string }) {
     fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/beacon`, {
       headers: { Authorization: `Bearer ${token}` },
     })
-      .then((r) => r.json())
+      .then(async (r) => {
+        if (!r.ok) {
+          const error = await r.json().catch(() => ({ detail: r.statusText }));
+          throw new Error(error.detail || `HTTP ${r.status}`);
+        }
+        return r.json();
+      })
       .then(setTiers)
-      .catch(() => setTiers([]));
+      .catch((err) => {
+        console.error("Failed to load tiers:", err);
+        setTiers([]);
+      });
   }, [token]);
 
   function addTier() {
@@ -64,10 +73,20 @@ function TierManager({ token }: { token?: string }) {
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify({ title: newTitle.trim(), order: tiers.length }),
     })
-      .then((r) => r.json())
+      .then(async (r) => {
+        if (!r.ok) {
+          const error = await r.json().catch(() => ({ detail: r.statusText }));
+          throw new Error(error.detail || `HTTP ${r.status}`);
+        }
+        return r.json();
+      })
       .then((t) => {
         setTiers([...tiers, t]);
         setNewTitle("");
+      })
+      .catch((err) => {
+        console.error("Failed to add tier:", err);
+        alert(`Failed to add tier: ${err.message}`);
       });
   }
 

@@ -34,7 +34,13 @@ async def get_current_user_optional(
     if not user_id:
         return None
 
-    result = await db.execute(select(User).where(User.id == user_id))
+    # Convert user_id to integer since User.id is an integer column
+    try:
+        user_id_int = int(user_id)
+    except (ValueError, TypeError):
+        return None
+
+    result = await db.execute(select(User).where(User.id == user_id_int))
     user = result.scalar_one_or_none()
     return user
 

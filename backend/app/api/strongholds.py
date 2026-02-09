@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
-from geoalchemy2 import WKTElement, to_shape
+from geoalchemy2 import WKTElement
+from geoalchemy2.shape import to_shape
 from pydantic import BaseModel
 
 from app.core.database import get_db

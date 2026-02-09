@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from geoalchemy2 import to_shape
+from geoalchemy2.shape import to_shape
 
 from app.core.database import get_db
 from app.models.user import User

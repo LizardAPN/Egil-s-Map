@@ -27,10 +27,13 @@ def run_migrations_offline() -> None:
 
 
 def run_migrations_online() -> None:
-    configuration = config.get_section(config.config_file_name, {})
+    configuration = config.get_section(config.config_ini_section, {}) or {}
     url = configuration.get("sqlalchemy.url") or config.get_main_option("sqlalchemy.url")
-    if url and "asyncpg" in str(url):
-        configuration["sqlalchemy.url"] = url.replace("postgresql+asyncpg", "postgresql")
+    if not url:
+        raise RuntimeError("sqlalchemy.url is not set in alembic.ini")
+    if "asyncpg" in str(url):
+        url = url.replace("postgresql+asyncpg", "postgresql")
+    configuration["sqlalchemy.url"] = url
     connectable = engine_from_config(
         configuration,
         prefix="sqlalchemy.",

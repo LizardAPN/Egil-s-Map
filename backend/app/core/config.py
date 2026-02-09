@@ -1,10 +1,11 @@
 from pydantic_settings import BaseSettings
 from functools import lru_cache
+from pathlib import Path
 
 
 class Settings(BaseSettings):
     # Database
-    database_url: str = "postgresql+asyncpg://egilsmap:egilsmap_secret@localhost:5432/egilsmap"
+    database_url: str = "postgresql+asyncpg://egilsmap:egilsmap_secret@localhost:5433/egilsmap"
 
     # S3
     s3_endpoint_url: str = "http://localhost:9000"
@@ -18,7 +19,8 @@ class Settings(BaseSettings):
     backend_url: str = "http://localhost:8000"
 
     class Config:
-        env_file = ".env"
+        # Look for .env in project root (parent of backend directory)
+        env_file = str(Path(__file__).parent.parent.parent / ".env")
         extra = "ignore"
 
 

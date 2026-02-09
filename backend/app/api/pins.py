@@ -99,7 +99,7 @@ async def get_pin(
     pin = result.scalar_one_or_none()
     if not pin:
         raise HTTPException(status_code=404, detail="Pin not found")
-    from geoalchemy2 import to_shape
+    from geoalchemy2.shape import to_shape
     pt = to_shape(pin.location)
     locked = await is_echo_locked(pin, db)
     content_url = pin.content_url if not locked else None
