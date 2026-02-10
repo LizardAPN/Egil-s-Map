@@ -18,7 +18,9 @@ class Stronghold(Base):
     __tablename__ = "strongholds"
 
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String(200), nullable=False)
+    name = Column(String(200), nullable=False)  # fallback
+    name_ru = Column(String(200), nullable=False)
+    name_en = Column(String(200), nullable=False)
     description = Column(Text, nullable=True)  # Manifesto
     is_private = Column(Boolean, default=False)
     avatar_url = Column(String(500), nullable=True)  # Seal/Emblem

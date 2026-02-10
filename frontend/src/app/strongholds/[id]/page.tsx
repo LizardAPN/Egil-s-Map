@@ -3,8 +3,11 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
+import { useTranslation } from "react-i18next";
 import Link from "next/link";
-import { isValidToken } from "@/lib/api";
+import { isValidToken, withLocale } from "@/lib/api";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { isValidLocale, type Locale } from "@/lib/i18n-utils";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 const WS_BASE = (API_BASE.replace(/^http/, "ws") || "ws://localhost:8000");
@@ -32,6 +35,8 @@ export default function CitadelPage() {
   const params = useParams();
   const id = params.id as string;
   const { data: session } = useSession();
+  const { i18n } = useTranslation();
+  const locale: Locale = isValidLocale(i18n.language) ? i18n.language : "en";
   const token = (session as { accessToken?: string })?.accessToken;
 
   const [detail, setDetail] = useState<StrongholdDetail | null>(null);
@@ -50,7 +55,8 @@ export default function CitadelPage() {
 
   const fetchDetail = useCallback(() => {
     const headers: HeadersInit = isValidToken(token) ? { Authorization: `Bearer ${token}` } : {};
-    fetch(`${API_BASE}/strongholds/${id}`, { headers })
+    const path = withLocale(`/strongholds/${id}`, locale);
+    fetch(`${API_BASE}${path}`, { headers })
       .then((r) => {
         if (!r.ok) {
           console.error(`Failed to fetch stronghold ${id}:`, r.status, r.statusText);
@@ -64,7 +70,7 @@ export default function CitadelPage() {
         setDetail(null);
       })
       .finally(() => setLoading(false));
-  }, [id, token]);
+  }, [id, token, locale]);
 
   useEffect(() => {
     fetchDetail();
@@ -294,7 +300,7 @@ export default function CitadelPage() {
             Egil&apos;s Map
           </Link>
         </div>
-        <nav className="flex gap-4 font-cinzel uppercase">
+        <nav className="flex items-center gap-4 font-cinzel uppercase">
           <Link href="/map">Map</Link>
           <Link href="/strongholds" className="text-amber-400">
             Strongholds
@@ -313,6 +319,7 @@ export default function CitadelPage() {
           ) : (
             <Link href="/login">Sign In</Link>
           )}
+          <LanguageSwitcher />
         </nav>
       </header>
 

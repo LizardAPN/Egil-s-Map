@@ -1,6 +1,7 @@
 "use client";
 
 import { useSession, signOut } from "next-auth/react";
+import { useTranslation } from "react-i18next";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useEffect, useState, useMemo } from "react";
@@ -10,7 +11,9 @@ import MomentCard, { type Moment } from "@/components/MomentCard";
 import FocusModeModal from "@/components/FocusModeModal";
 import PrivacyToggle from "@/components/PrivacyToggle";
 import CreateChapterModal from "@/components/CreateChapterModal";
-import { isValidToken } from "@/lib/api";
+import { isValidToken, withLocale } from "@/lib/api";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { isValidLocale, type Locale } from "@/lib/i18n-utils";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -32,6 +35,8 @@ type BeaconTier = {
 
 export default function ProfilePage() {
   const { data: session, status } = useSession();
+  const { i18n, t } = useTranslation("common");
+  const locale: Locale = isValidLocale(i18n.language) ? i18n.language : "en";
   const router = useRouter();
   const [beaconData, setBeaconData] = useState<{
     current_is_star: boolean;
@@ -49,7 +54,8 @@ export default function ProfilePage() {
   function refreshBeaconData() {
     const username = session?.user?.name || "me";
     if (!username) return;
-    fetch(`${API_BASE}/profile/${encodeURIComponent(username)}/beacon`)
+    const path = withLocale(`/profile/${encodeURIComponent(username)}/beacon`, locale);
+    fetch(`${API_BASE}${path}`)
       .then((r) => r.json())
       .then(setBeaconData)
       .catch(() => setBeaconData({ current_is_star: false, tiers: [] }));
@@ -57,7 +63,7 @@ export default function ProfilePage() {
 
   useEffect(() => {
     refreshBeaconData();
-  }, [session?.user?.name]);
+  }, [session?.user?.name, locale]);
 
   // Fetch privacy settings
   useEffect(() => {
@@ -123,14 +129,15 @@ export default function ProfilePage() {
           Egil&apos;s Map
         </Link>
         <nav className="flex gap-4 font-cinzel uppercase items-center">
-          <Link href="/map">Map</Link>
-          <Link href="/strongholds">Strongholds</Link>
+          <Link href="/map">{t("nav.map")}</Link>
+          <Link href="/strongholds">{t("nav.strongholds")}</Link>
+          <LanguageSwitcher />
           <button
             type="button"
             onClick={() => signOut({ callbackUrl: "/" })}
             className="text-inherit hover:underline bg-transparent border-none cursor-pointer p-0 font-inherit"
           >
-            Sign Out
+            {t("nav.signOut")}
           </button>
         </nav>
       </header>
@@ -139,7 +146,7 @@ export default function ProfilePage() {
       <div className="relative z-10 px-8 pt-8 pb-4">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-4xl font-bold text-amber-400 font-cinzel">
-            {username}&apos;s Chronicle
+            {t("profile.chronicleTitle", { username })}
           </h1>
           {isValidToken(token) && (
             <PrivacyToggle
@@ -179,7 +186,7 @@ export default function ProfilePage() {
                   strokeLinecap="round"
                 />
               </svg>
-              New Chapter
+              {t("profile.newChapter")}
             </button>
           )}
         </div>
@@ -210,7 +217,7 @@ export default function ProfilePage() {
                 opacity="0.6"
               />
             </svg>
-            Record a Deed
+            {t("profile.recordDeed")}
           </Link>
         </div>
       )}
@@ -221,8 +228,8 @@ export default function ProfilePage() {
           <div className="text-center py-16">
             <p className="text-gray-500 font-special-elite text-lg">
               {selectedChapterId === null
-                ? "No moments recorded yet. Begin your journey by recording your first deed."
-                : "No moments in this chapter yet."}
+                ? t("profile.noMomentsYet")
+                : t("profile.noMomentsInChapter")}
             </p>
           </div>
         ) : (

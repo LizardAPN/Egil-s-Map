@@ -11,7 +11,9 @@ class BeaconTier(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-    title = Column(String(200), nullable=False)
+    title = Column(String(200), nullable=False)  # fallback
+    title_ru = Column(String(200), nullable=False)
+    title_en = Column(String(200), nullable=False)
     order = Column(Integer, default=0)
     chapter_summary = Column(String(2000), nullable=True)
     location = Column(Geometry(geometry_type="POINT", srid=4326), nullable=True)

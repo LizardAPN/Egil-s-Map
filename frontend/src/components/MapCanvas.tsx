@@ -43,10 +43,18 @@ declare module "leaflet" {
   ): L.Layer;
 }
 
-/* OpenStreetMap base layer URL */
+/* OpenStreetMap base layer URL (fallback when MapTiler key not set) */
 const OSM_BASE = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
+const MAPTILER_KEY = process.env.NEXT_PUBLIC_MAPTILER_API_KEY || "";
 
-export default function MapCanvas({ token }: { token?: string }) {
+/** Map locale to MapTiler language (en/ru supported for label translation) */
+function localeToMaptilerLanguage(locale: string): string {
+  if (locale === "ru") return "ru";
+  return "en";
+}
+
+type MapCanvasProps = { token?: string; locale?: string };
+export default function MapCanvas({ token, locale = "en" }: MapCanvasProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const heatLayerRef = useRef<L.Layer | null>(null);
@@ -54,6 +62,7 @@ export default function MapCanvas({ token }: { token?: string }) {
   const strongholdMarkersRef = useRef<L.LayerGroup | null>(null);
   const campfireMarkersRef = useRef<L.LayerGroup | null>(null);
   const labelsLayerRef = useRef<L.TileLayer | null>(null);
+  const maptilerLayerRef = useRef<{ setLanguage: (lang: string) => void } | null>(null);
   const [ready, setReady] = useState(false);
   const [pinsData, setPinsData] = useState<PinRecord[]>([]);
   const [chaptersData, setChaptersData] = useState<{ tier_id: number; tier_title: string; lat: number; lng: number }[]>([]);
@@ -64,13 +73,15 @@ export default function MapCanvas({ token }: { token?: string }) {
     
     let map: L.Map | null = null;
     let timer: NodeJS.Timeout | null = null;
-    
-    function initializeMap() {
-      if (!mapRef.current) return;
+    let cancelled = false;
+
+    async function initializeMap() {
+      const container = mapRef.current;
+      if (!container || cancelled || !document.body.contains(container)) return;
       
-      map = L.map(mapRef.current, {
+      map = L.map(container, {
         zoomControl: true,
-        attributionControl: false,
+        attributionControl: !!MAPTILER_KEY,
         maxBounds: [
           [-90, -180],
           [90, 180],
@@ -80,27 +91,57 @@ export default function MapCanvas({ token }: { token?: string }) {
         worldCopyJump: false,
       }).setView([20, 0], 2);
 
-      // 1. Base: OpenStreetMap tiles (CSS filter applied via .leaflet-container)
-      L.tileLayer(OSM_BASE, {
-        attribution: "",
-        noWrap: true,
-        minZoom: 0,
-        maxZoom: 19,
-      }).addTo(map);
-      
-      // 2. Labels layer: Stamen Toner Labels - single clean label per place, no duplicates
-      const labelsLayer = L.tileLayer(
-        "https://stamen-tiles-{s}.a.ssl.fastly.net/toner-labels/{z}/{x}/{y}{r}.png",
-        {
+      const mapLanguage = localeToMaptilerLanguage(locale);
+
+      function addOsmFallback() {
+        if (!map || cancelled) return;
+        const container = map.getContainer();
+        if (!container || !document.body.contains(container)) return;
+        L.tileLayer(OSM_BASE, {
           attribution: "",
           noWrap: true,
-          className: "map-labels-layer",
-          subdomains: "abcd",
-        }
-      );
-      labelsLayer.addTo(map);
-      labelsLayerRef.current = labelsLayer;
+          minZoom: 0,
+          maxZoom: 19,
+        }).addTo(map!);
+        const labelsLayer = L.tileLayer(
+          "https://stamen-tiles-{s}.a.ssl.fastly.net/toner-labels/{z}/{x}/{y}{r}.png",
+          {
+            attribution: "",
+            noWrap: true,
+            className: "map-labels-layer",
+            subdomains: "abcd",
+          }
+        );
+        labelsLayer.addTo(map!);
+        labelsLayerRef.current = labelsLayer;
+      }
       
+      if (MAPTILER_KEY) {
+        try {
+          if (cancelled || !map) return;
+          const leafletmaptilersdk = await import("@maptiler/leaflet-maptilersdk");
+          if (cancelled || !map) return;
+          const { MaptilerLayer, MapStyle, Language } = leafletmaptilersdk;
+          const mtLang = mapLanguage === "ru" ? Language.RUSSIAN : Language.ENGLISH;
+          const mtLayer = new MaptilerLayer({
+            apiKey: MAPTILER_KEY,
+            style: MapStyle.BASIC.LIGHT,
+            language: mtLang,
+          });
+          map.whenReady(() => {
+            if (!map || cancelled) return;
+            mtLayer.addTo(map);
+            maptilerLayerRef.current = mtLayer;
+          });
+        } catch (err) {
+          console.warn("MapTiler failed, using OSM fallback:", err);
+          addOsmFallback();
+        }
+      } else {
+        addOsmFallback();
+      }
+      
+      if (cancelled || !map) return;
       const markers = L.layerGroup().addTo(map);
       markersRef.current = markers;
       const strongholdMarkers = L.layerGroup().addTo(map);
@@ -118,7 +159,7 @@ export default function MapCanvas({ token }: { token?: string }) {
       
       // Wait for map to be fully ready before setting ready state
       map.whenReady(() => {
-        if (!map) return;
+        if (!map || cancelled) return;
         setReady(true);
         map.on("click", () => setSelectedChapterId(null));
       });
@@ -128,7 +169,7 @@ export default function MapCanvas({ token }: { token?: string }) {
     if (mapRef.current.offsetWidth === 0 || mapRef.current.offsetHeight === 0) {
       // Wait for next frame to ensure container is sized
       timer = setTimeout(() => {
-        if (mapRef.current && (mapRef.current.offsetWidth > 0 && mapRef.current.offsetHeight > 0)) {
+        if (!cancelled && mapRef.current && document.body.contains(mapRef.current) && mapRef.current.offsetWidth > 0 && mapRef.current.offsetHeight > 0) {
           initializeMap();
         }
       }, 0);
@@ -137,6 +178,7 @@ export default function MapCanvas({ token }: { token?: string }) {
     }
     
     return () => {
+      cancelled = true;
       if (timer) {
         clearTimeout(timer);
       }
@@ -149,9 +191,19 @@ export default function MapCanvas({ token }: { token?: string }) {
       strongholdMarkersRef.current = null;
       campfireMarkersRef.current = null;
       labelsLayerRef.current = null;
+      maptilerLayerRef.current = null;
       setReady(false);
     };
   }, []);
+
+  // Update MapTiler language when locale changes (no re-init)
+  useEffect(() => {
+    const mt = maptilerLayerRef.current;
+    if (mt && MAPTILER_KEY) {
+      const lang = localeToMaptilerLanguage(locale);
+      mt.setLanguage(lang);
+    }
+  }, [locale]);
 
   useEffect(() => {
     if (!ready || !mapInstanceRef.current) return;
@@ -172,7 +224,7 @@ export default function MapCanvas({ token }: { token?: string }) {
         const maxLat = b.getNorth();
         const minLng = b.getWest();
         const maxLng = b.getEast();
-        const params = `min_lat=${minLat}&max_lat=${maxLat}&min_lng=${minLng}&max_lng=${maxLng}`;
+        const params = `min_lat=${minLat}&max_lat=${maxLat}&min_lng=${minLng}&max_lng=${maxLng}&locale=${encodeURIComponent(locale)}`;
         const headers: HeadersInit = {};
         if (token) headers["Authorization"] = `Bearer ${token}`;
 
@@ -272,7 +324,7 @@ export default function MapCanvas({ token }: { token?: string }) {
         mapInstanceRef.current.off("zoomend", handler);
       }
     };
-  }, [ready, token]);
+  }, [ready, token, locale]);
 
   // Draw chapter bonfires (from API) and (when a chapter is selected) Roman numeral pin markers
   useEffect(() => {

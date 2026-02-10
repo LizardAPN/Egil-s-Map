@@ -1,9 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import dynamic from "next/dynamic";
 import { motion, AnimatePresence } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import { isValidToken } from "@/lib/api";
-import MapPicker from "./MapPicker";
+
+const MapPicker = dynamic(() => import("./MapPicker"), { ssr: false });
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -22,6 +25,7 @@ export default function CreateChapterModal({
   token,
   existingChaptersCount,
 }: CreateChapterModalProps) {
+  const { t } = useTranslation("common");
   const [title, setTitle] = useState("");
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [mapPickerOpen, setMapPickerOpen] = useState(false);
@@ -97,13 +101,13 @@ export default function CreateChapterModal({
           onClick={(e) => e.stopPropagation()}
         >
           <h2 className="text-2xl font-bold text-amber-400 font-cinzel mb-4">
-            Create New Chapter
+            {t("profile.createNewChapter")}
           </h2>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm text-gray-400 mb-2 font-special-elite">
-                Chapter Title
+                {t("profile.chapterTitle")}
               </label>
               <input
                 type="text"
@@ -112,7 +116,7 @@ export default function CreateChapterModal({
                   setTitle(e.target.value);
                   setError(null);
                 }}
-                placeholder="e.g., Moscow, Journey to the East"
+                placeholder={t("profile.chapterTitlePlaceholder")}
                 className="w-full px-4 py-2 bg-[#0a0a0c] border border-gray-600 focus:border-[#d4af37] font-special-elite text-gray-200 rounded"
                 autoFocus
                 disabled={loading}
@@ -121,7 +125,7 @@ export default function CreateChapterModal({
 
             <div>
               <label className="block text-sm text-gray-400 mb-2 font-special-elite">
-                Chapter location (bonfire on map)
+                {t("profile.chapterLocation")}
               </label>
               <div className="flex items-center gap-2">
                 <button
@@ -132,7 +136,7 @@ export default function CreateChapterModal({
                 >
                   {location
                     ? `${location.lat.toFixed(4)}, ${location.lng.toFixed(4)}`
-                    : "Pick on map"}
+                    : t("profile.pickOnMap")}
                 </button>
                 {location && (
                   <button
@@ -141,12 +145,12 @@ export default function CreateChapterModal({
                     disabled={loading}
                     className="text-gray-500 hover:text-gray-300 text-sm"
                   >
-                    Clear
+                    {t("profile.clear")}
                   </button>
                 )}
               </div>
               <p className="text-gray-500 text-xs mt-1 font-special-elite">
-                Optional. Where this chapter appears as a bonfire. You can set it later.
+                {t("profile.chapterLocationHint")}
               </p>
             </div>
 
@@ -161,14 +165,14 @@ export default function CreateChapterModal({
                 disabled={loading}
                 className="flex-1 py-2 bg-gray-700 text-gray-200 hover:bg-gray-600 font-cinzel rounded transition-colors disabled:opacity-50"
               >
-                Cancel
+                {t("profile.cancel")}
               </button>
               <button
                 type="submit"
                 disabled={loading || !title.trim()}
                 className="flex-1 py-2 bg-[#d4af37] text-gray-900 hover:bg-[#b8860b] hover:brightness-110 font-cinzel font-medium rounded transition-colors disabled:opacity-50"
               >
-                {loading ? "Creating..." : "Create Chapter"}
+                {loading ? t("profile.creating") : t("profile.createChapter")}
               </button>
             </div>
           </form>

@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 
 export type Chapter = {
   id: number;
@@ -19,6 +20,7 @@ export default function ChapterBar({
   selectedChapterId,
   onChapterSelect,
 }: ChapterBarProps) {
+  const { t } = useTranslation("common");
   return (
     <div className="w-full overflow-x-auto pb-2 scrollbar-hide">
       <div className="flex gap-2 min-w-max px-4">
@@ -26,7 +28,7 @@ export default function ChapterBar({
           onClick={() => onChapterSelect(null)}
           className={`chapter-tab ${selectedChapterId === null ? "active" : ""}`}
         >
-          All Chapters
+          {t("profile.allChapters")}
         </button>
         {chapters.map((chapter) => (
           <motion.button

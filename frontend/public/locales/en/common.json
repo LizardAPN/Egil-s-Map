@@ -1,0 +1,52 @@
+{
+  "app": {
+    "title": "Egil's Map",
+    "description": "An open-source digital legacy platform where life journeys are visualized as a map of light."
+  },
+  "nav": {
+    "map": "Map",
+    "strongholds": "Strongholds",
+    "profile": "Profile",
+    "addPin": "Add Pin",
+    "admin": "Admin",
+    "signIn": "Sign In",
+    "signOut": "Sign Out",
+    "createStronghold": "Create Stronghold",
+    "backToMap": "← Back to Map"
+  },
+  "strongholds": {
+    "createStronghold": "Create Stronghold",
+    "title": "Strongholds",
+    "subtitle": "Communities of light. Brightness is the sum of all members' inspiration scores.",
+    "brightness": "Brightness",
+    "member": "Member",
+    "requestEntry": "Request Entry",
+    "join": "Join",
+    "manifesto": "Manifesto (optional)",
+    "manifestoPlaceholder": "The ideology of this community...",
+    "name": "Name",
+    "location": "Location",
+    "private": "Private (require approval to join)",
+    "pickOnMap": "Pick on Map",
+    "creating": "Creating...",
+    "create": "Create"
+  },
+  "map": {
+    "clickToSeeEvents": "Click to see events",
+    "chapter": "Chapter"
+  },
+  "pins": {
+    "inspirations": "inspirations",
+    "inspire": "Inspire",
+    "loading": "Loading..."
+  },
+  "profile": {
+    "settings": "Settings",
+    "privacy": "Privacy"
+  },
+  "moments": {
+    "private": "Private",
+    "privateMoment": "Private Moment",
+    "unknownContentType": "Unknown content type"
+  }
+}

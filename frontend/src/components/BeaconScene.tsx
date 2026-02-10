@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useRef, useEffect, useState, useCallback } from "react";
+import { withLocale } from "@/lib/api";
 import { Canvas, useFrame, type ThreeEvent } from "@react-three/fiber";
 import { OrbitControls, Float as FloatComponent } from "@react-three/drei";
 import * as THREE from "three";
@@ -22,6 +23,7 @@ type BeaconSceneProps = {
   username: string;
   data?: BeaconData | null;
   onTierSelect?: (tierId: number) => void;
+  locale?: string;
 };
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
@@ -40,17 +42,18 @@ const IRON_METALNESS = 0.85;
 const CORE_COLOR = "#FFD700";
 const CORE_EMISSIVE = "#FFD700";
 
-export default function BeaconScene({ username, data: dataProp, onTierSelect }: BeaconSceneProps) {
+export default function BeaconScene({ username, data: dataProp, onTierSelect, locale }: BeaconSceneProps) {
   const [fetchedData, setFetchedData] = useState<BeaconData | null>(null);
   const data = dataProp ?? fetchedData;
 
   useEffect(() => {
     if (dataProp != null) return;
-    fetch(`${API_BASE}/profile/${encodeURIComponent(username)}/beacon`)
+    const path = withLocale(`/profile/${encodeURIComponent(username)}/beacon`, locale);
+    fetch(`${API_BASE}${path}`)
       .then((r) => r.json())
       .then(setFetchedData)
       .catch(() => setFetchedData({ current_is_star: false, tiers: [] }));
-  }, [username, dataProp]);
+  }, [username, dataProp, locale]);
 
   if (!data) {
     return (

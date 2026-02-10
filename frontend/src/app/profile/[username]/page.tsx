@@ -2,9 +2,13 @@
 
 import { useParams } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
+import { useTranslation } from "react-i18next";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
+import { withLocale } from "@/lib/api";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { isValidLocale, type Locale } from "@/lib/i18n-utils";
 
 const BeaconScene = dynamic(() => import("@/components/BeaconScene"), { ssr: false });
 
@@ -14,6 +18,8 @@ export default function PublicProfilePage() {
   const params = useParams();
   const username = params.username as string;
   const { data: session } = useSession();
+  const { i18n, t } = useTranslation("common");
+  const locale: Locale = isValidLocale(i18n.language) ? i18n.language : "en";
   const [beaconData, setBeaconData] = useState<{
     current_is_star: boolean;
     tiers: { id: number; title: string; order: number; pins: { id: number; lat: number; lng: number; content_type: string }[] }[];
@@ -23,6 +29,7 @@ export default function PublicProfilePage() {
     username: string;
     data?: { current_is_star: boolean; tiers: { id: number; title: string; order: number; pins: { id: number; lat: number; lng: number; content_type: string }[] }[] } | null;
     onTierSelect?: (tierId: number) => void;
+    locale?: string;
   }> | null>(null);
 
   useEffect(() => {
@@ -31,7 +38,8 @@ export default function PublicProfilePage() {
 
   useEffect(() => {
     if (!username) return;
-    fetch(`${API_BASE}/profile/${encodeURIComponent(username)}/beacon`)
+    const path = withLocale(`/profile/${encodeURIComponent(username)}/beacon`, locale);
+    fetch(`${API_BASE}${path}`)
       .then((r) => {
         if (!r.ok) throw new Error("Not found");
         return r.json();
@@ -39,7 +47,7 @@ export default function PublicProfilePage() {
       .then(setBeaconData)
       .catch(() => setBeaconData(null))
       .finally(() => setLoading(false));
-  }, [username]);
+  }, [username, locale]);
 
   if (loading) {
     return (
@@ -71,9 +79,10 @@ export default function PublicProfilePage() {
             Egil&apos;s Map
           </Link>
         </div>
-        <nav className="flex gap-4 font-cinzel uppercase">
-          <Link href="/map">Map</Link>
-          <Link href="/strongholds">Strongholds</Link>
+        <nav className="flex items-center gap-4 font-cinzel uppercase">
+          <Link href="/map">{t("nav.map")}</Link>
+          <Link href="/strongholds">{t("nav.strongholds")}</Link>
+          <LanguageSwitcher />
           {session ? (
             <>
               <Link href="/profile">Profile</Link>
@@ -82,11 +91,11 @@ export default function PublicProfilePage() {
                 onClick={() => signOut({ callbackUrl: "/" })}
                 className="text-inherit hover:underline bg-transparent border-none cursor-pointer p-0 font-inherit"
               >
-                Sign Out
+                {t("nav.signOut")}
               </button>
             </>
           ) : (
-            <Link href="/login">Sign In</Link>
+            <Link href="/login">{t("nav.signIn")}</Link>
           )}
         </nav>
       </header>
@@ -99,6 +108,7 @@ export default function PublicProfilePage() {
             <BeaconSceneComp
               username={username}
               data={beaconData}
+              locale={locale}
             />
           )}
           {!BeaconSceneComp && (

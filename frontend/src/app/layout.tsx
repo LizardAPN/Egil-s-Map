@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { SessionProvider } from "@/components/SessionProvider";
+import { I18nProvider } from "@/components/I18nProvider";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -13,7 +14,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" className="dark" suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -23,7 +24,9 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-screen bg-gray-950 text-gray-100 font-special-elite">
-        <SessionProvider>{children}</SessionProvider>
+        <I18nProvider>
+          <SessionProvider>{children}</SessionProvider>
+        </I18nProvider>
       </body>
     </html>
   );

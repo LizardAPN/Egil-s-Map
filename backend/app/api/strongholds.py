@@ -73,8 +73,15 @@ async def _is_leader_or_officer(db: AsyncSession, stronghold_id: int, user_id: i
     return role in ("LEADER", "OFFICER")
 
 
+def _stronghold_name(s: "Stronghold", locale: str | None) -> str:
+    if locale == "en":
+        return s.name_en or s.name_ru or s.name
+    return s.name_ru or s.name_en or s.name
+
+
 @router.get("")
 async def list_strongholds(
+    locale: Optional[str] = Query(None, description="Locale for name (ru, en)"),
     db: AsyncSession = Depends(get_db),
     user: User | None = Depends(get_current_user_optional),
 ):
@@ -87,9 +94,10 @@ async def list_strongholds(
         pt = to_shape(s.location)
         brightness = await _get_brightness(db, s.id)
         is_member = (await _is_member(db, s.id, user.id)) if user else False
+        name = _stronghold_name(s, locale)
         out.append({
             "id": s.id,
-            "name": s.name,
+            "name": name,
             "lat": pt.y,
             "lng": pt.x,
             "is_private": s.is_private,
@@ -102,6 +110,7 @@ async def list_strongholds(
 @router.get("/{stronghold_id}")
 async def get_stronghold(
     stronghold_id: int,
+    locale: Optional[str] = Query(None, description="Locale for name (ru, en)"),
     db: AsyncSession = Depends(get_db),
     user: User | None = Depends(get_current_user_optional),
 ):
@@ -137,7 +146,7 @@ async def get_stronghold(
 
     return {
         "id": s.id,
-        "name": s.name,
+        "name": _stronghold_name(s, locale),
         "description": s.description,
         "avatar_url": s.avatar_url,
         "is_private": s.is_private,
@@ -168,6 +177,8 @@ async def create_stronghold(
         point = WKTElement(f"POINT({data.lng} {data.lat})", srid=4326)
         stronghold = Stronghold(
             name=data.name,
+            name_ru=data.name,
+            name_en=data.name,
             description=data.description,
             is_private=data.is_private,
             location=point,

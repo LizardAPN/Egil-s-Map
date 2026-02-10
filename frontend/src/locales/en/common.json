@@ -1,0 +1,70 @@
+{
+  "app": {
+    "title": "Egil's Map",
+    "description": "An open-source digital legacy platform where life journeys are visualized as a map of light."
+  },
+  "nav": {
+    "map": "Map",
+    "strongholds": "Strongholds",
+    "profile": "Profile",
+    "addPin": "Add Pin",
+    "admin": "Admin",
+    "signIn": "Sign In",
+    "signOut": "Sign Out",
+    "createStronghold": "Create Stronghold",
+    "backToMap": "← Back to Map"
+  },
+  "strongholds": {
+    "createStronghold": "Create Stronghold",
+    "title": "Strongholds",
+    "subtitle": "Communities of light. Brightness is the sum of all members' inspiration scores.",
+    "brightness": "Brightness",
+    "member": "Member",
+    "requestEntry": "Request Entry",
+    "join": "Join",
+    "manifesto": "Manifesto (optional)",
+    "manifestoPlaceholder": "The ideology of this community...",
+    "name": "Name",
+    "location": "Location",
+    "private": "Private (require approval to join)",
+    "pickOnMap": "Pick on Map",
+    "creating": "Creating...",
+    "create": "Create"
+  },
+  "map": {
+    "clickToSeeEvents": "Click to see events",
+    "chapter": "Chapter"
+  },
+  "pins": {
+    "inspirations": "inspirations",
+    "inspire": "Inspire",
+    "loading": "Loading..."
+  },
+  "profile": {
+    "settings": "Settings",
+    "privacy": "Privacy",
+    "chronicleTitle": "{{username}}'s Chronicle",
+    "allChapters": "All Chapters",
+    "newChapter": "New Chapter",
+    "recordDeed": "Record a Deed",
+    "noMomentsYet": "No moments recorded yet. Begin your journey by recording your first deed.",
+    "noMomentsInChapter": "No moments in this chapter yet.",
+    "private": "Private",
+    "public": "Public",
+    "createNewChapter": "Create New Chapter",
+    "chapterTitle": "Chapter Title",
+    "chapterTitlePlaceholder": "e.g., Moscow, Journey to the East",
+    "chapterLocation": "Chapter location (bonfire on map)",
+    "pickOnMap": "Pick on map",
+    "clear": "Clear",
+    "chapterLocationHint": "Optional. Where this chapter appears as a bonfire. You can set it later.",
+    "cancel": "Cancel",
+    "creating": "Creating...",
+    "createChapter": "Create Chapter"
+  },
+  "moments": {
+    "private": "Private",
+    "privateMoment": "Private Moment",
+    "unknownContentType": "Unknown content type"
+  }
+}
