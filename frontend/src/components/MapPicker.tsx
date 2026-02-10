@@ -106,25 +106,28 @@ export default function MapPicker({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/70 backdrop-blur-sm"
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-gray-900/70 backdrop-blur-sm"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="relative w-[90vw] max-w-2xl h-[70vh] torn-paper-clip overflow-hidden shadow-2xl map-picker-cursor">
+      <div
+        className="relative w-[90vw] max-w-2xl h-[70vh] torn-paper-clip overflow-hidden shadow-2xl map-picker-cursor flex flex-col bg-[#1a1a1e]"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div
           ref={mapRef}
-          className="w-full h-full map-medieval-theme"
+          className="flex-1 min-h-0 w-full map-medieval-theme"
         />
-        <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between gap-4 torn-paper-clip px-4 py-3">
+        <div className="flex-shrink-0 flex items-center justify-between gap-4 torn-paper-clip px-4 py-3 border-t border-gray-700">
           <p className="text-sm text-gray-300 font-special-elite">
             {picked
-              ? `Selected: ${picked.lat.toFixed(4)}, ${picked.lng.toFixed(4)}`
+              ? `Selected: ${picked.lat.toFixed(4)}, ${picked.lng.toFixed(4)} — click “Use this location” to save`
               : "Click on the map to pick a location"}
           </p>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-shrink-0">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 bg-[#d4af37] text-gray-900 font-cinzel hover:bg-[#b8860b] hover:brightness-110"
+              className="px-4 py-2 bg-gray-600 text-gray-200 font-cinzel hover:bg-gray-500 rounded"
             >
               Cancel
             </button>
@@ -132,9 +135,9 @@ export default function MapPicker({
               type="button"
               onClick={handleConfirm}
               disabled={!picked}
-              className="px-4 py-2 bg-[#d4af37] text-gray-900 font-cinzel font-medium hover:bg-[#b8860b] hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 bg-[#d4af37] text-gray-900 font-cinzel font-medium hover:bg-[#b8860b] hover:brightness-110 rounded disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Confirm
+              Use this location
             </button>
           </div>
         </div>
