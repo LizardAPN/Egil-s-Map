@@ -6,6 +6,8 @@ class BeaconTierCreate(BaseModel):
     title: str
     order: int = 0
     chapter_summary: Optional[str] = None
+    lat: Optional[float] = None
+    lng: Optional[float] = None
 
 
 class BeaconTierResponse(BaseModel):
@@ -13,6 +15,8 @@ class BeaconTierResponse(BaseModel):
     title: str
     order: int
     chapter_summary: Optional[str] = None
+    lat: Optional[float] = None
+    lng: Optional[float] = None
 
     class Config:
         from_attributes = True
@@ -32,7 +36,7 @@ class PinInBeacon(BaseModel):
 
 
 class BeaconTierWithPins(BeaconTierResponse):
-    pins: list["PinInBeacon"]
+    pins: list["PinInBeacon"] = []
 
 
 class BeaconResponse(BaseModel):

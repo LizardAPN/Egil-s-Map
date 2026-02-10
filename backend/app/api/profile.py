@@ -44,12 +44,21 @@ async def get_beacon(username: str, db: AsyncSession = Depends(get_db)):
                     is_private=p.is_private,
                 )
             )
+        lat, lng = (None, None)
+        if tier.location is not None:
+            try:
+                pt = to_shape(tier.location)
+                lat, lng = pt.y, pt.x
+            except Exception:
+                pass
         tier_responses.append(
             BeaconTierWithPins(
                 id=tier.id,
                 title=tier.title,
                 order=tier.order,
                 chapter_summary=tier.chapter_summary,
+                lat=lat,
+                lng=lng,
                 pins=pin_list,
             )
         )

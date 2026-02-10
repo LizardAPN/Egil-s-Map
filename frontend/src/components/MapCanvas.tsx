@@ -1,11 +1,34 @@
 "use client";
 
-import { useRef, useEffect, useState } from "react";
+import { useRef, useEffect, useState, useMemo } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import "leaflet.heat";
+import { getCampfirePinDivIcon } from "./icons/CampfirePinIcon";
+import { getRomanNumeralDivIcon, toRoman } from "./icons/RomanNumeralIcon";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+type PinRecord = {
+  id: number;
+  tier_id: number;
+  tier_title: string;
+  lat: number;
+  lng: number;
+  content_type: string;
+  is_private: boolean;
+  is_echo?: boolean;
+  created_at: string | null;
+};
 
 declare global {
   interface Window {
@@ -29,8 +52,12 @@ export default function MapCanvas({ token }: { token?: string }) {
   const heatLayerRef = useRef<L.Layer | null>(null);
   const markersRef = useRef<L.LayerGroup | null>(null);
   const strongholdMarkersRef = useRef<L.LayerGroup | null>(null);
+  const campfireMarkersRef = useRef<L.LayerGroup | null>(null);
   const labelsLayerRef = useRef<L.TileLayer | null>(null);
   const [ready, setReady] = useState(false);
+  const [pinsData, setPinsData] = useState<PinRecord[]>([]);
+  const [chaptersData, setChaptersData] = useState<{ tier_id: number; tier_title: string; lat: number; lng: number }[]>([]);
+  const [selectedChapterId, setSelectedChapterId] = useState<number | null>(null);
 
   useEffect(() => {
     if (!mapRef.current) return;
@@ -78,6 +105,8 @@ export default function MapCanvas({ token }: { token?: string }) {
       markersRef.current = markers;
       const strongholdMarkers = L.layerGroup().addTo(map);
       strongholdMarkersRef.current = strongholdMarkers;
+      const campfireMarkers = L.layerGroup().addTo(map);
+      campfireMarkersRef.current = campfireMarkers;
       mapInstanceRef.current = map;
       
       // Invalidate size to ensure Leaflet recalculates container dimensions
@@ -89,7 +118,9 @@ export default function MapCanvas({ token }: { token?: string }) {
       
       // Wait for map to be fully ready before setting ready state
       map.whenReady(() => {
+        if (!map) return;
         setReady(true);
+        map.on("click", () => setSelectedChapterId(null));
       });
     }
     
@@ -116,6 +147,7 @@ export default function MapCanvas({ token }: { token?: string }) {
       mapInstanceRef.current = null;
       markersRef.current = null;
       strongholdMarkersRef.current = null;
+      campfireMarkersRef.current = null;
       labelsLayerRef.current = null;
       setReady(false);
     };
@@ -141,17 +173,24 @@ export default function MapCanvas({ token }: { token?: string }) {
         const minLng = b.getWest();
         const maxLng = b.getEast();
         const params = `min_lat=${minLat}&max_lat=${maxLat}&min_lng=${minLng}&max_lng=${maxLng}`;
-        
-        const [heatRes, pinsRes, strongholdsRes] = await Promise.all([
-          fetch(`${API_BASE}/map/heatmap?${params}`),
-          fetch(`${API_BASE}/map/pins?${params}`),
+        const headers: HeadersInit = {};
+        if (token) headers["Authorization"] = `Bearer ${token}`;
+
+        const [heatRes, pinsRes, strongholdsRes, chaptersRes] = await Promise.all([
+          fetch(`${API_BASE}/map/heatmap?${params}`, { headers }),
+          fetch(`${API_BASE}/map/pins?${params}`, { headers }),
           fetch(`${API_BASE}/map/strongholds?${params}`),
+          fetch(`${API_BASE}/map/chapters?${params}`, { headers }),
         ]);
         const heatData = await heatRes.json();
-        const pinsData = await pinsRes.json();
+        const pinsRaw = await pinsRes.json();
         const strongholdsData = await strongholdsRes.json();
+        const chaptersRaw = await chaptersRes.json();
 
         if (!mapInstanceRef.current) return;
+
+        setPinsData((pinsRaw as PinRecord[]) || []);
+        setChaptersData((chaptersRaw as { tier_id: number; tier_title: string; lat: number; lng: number }[]) || []);
 
         const points: [number, number, number][] = (
           heatData as { lat: number; lng: number; intensity: number }[]
@@ -184,34 +223,6 @@ export default function MapCanvas({ token }: { token?: string }) {
           }
         }, 100);
 
-        if (markersRef.current) {
-          markersRef.current.clearLayers();
-          for (const pin of pinsData as { id: number; lat: number; lng: number; content_type: string; is_private: boolean; is_echo?: boolean }[]) {
-            // Guardian Incognito: locked/private pins appear as faint Mist
-            const isMist = pin.is_private || pin.is_echo;
-            const iconSvgString = `
-              <svg width="28" height="28" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="16" cy="16" r="14" fill="${isMist ? "rgba(180,180,200,0.4)" : "#8B4513"}" stroke="${isMist ? "rgba(120,120,140,0.5)" : "#5D3A1A"}" stroke-width="1.5"/>
-                ${pin.is_private ? `
-                  <line x1="16" y1="8" x2="16" y2="24" stroke="${isMist ? "rgba(120,120,140,0.5)" : "#5D3A1A"}" stroke-width="2" stroke-linecap="round"/>
-                  <line x1="8" y1="16" x2="24" y2="16" stroke="${isMist ? "rgba(120,120,140,0.5)" : "#5D3A1A"}" stroke-width="2" stroke-linecap="round"/>
-                  <circle cx="16" cy="16" r="2" fill="${isMist ? "rgba(120,120,140,0.6)" : "#5D3A1A"}" opacity="0.6"/>
-                ` : `
-                  <circle cx="16" cy="16" r="4" fill="${isMist ? "rgba(120,120,140,0.8)" : "#5D3A1A"}" opacity="0.8"/>
-                `}
-              </svg>
-            `;
-            const icon = L.divIcon({
-              className: `pin-marker wax-seal-marker ${isMist ? "guardian-mist" : ""}`,
-              html: iconSvgString,
-              iconSize: [28, 28],
-              iconAnchor: [14, 14],
-            });
-            const m = L.marker([pin.lat, pin.lng], { icon }).addTo(markersRef.current);
-            m.bindPopup(`<a href="/pins/${pin.id}">Pin #${pin.id}</a>`);
-          }
-        }
-
         // Stronghold markers - castle/fortress icon, size by brightness
         if (strongholdMarkersRef.current) {
           strongholdMarkersRef.current.clearLayers();
@@ -234,6 +245,7 @@ export default function MapCanvas({ token }: { token?: string }) {
             m.bindPopup(`<a href="/strongholds/${sh.id}" class="font-cinzel">${sh.name}</a><br/><span class="text-gray-500 text-sm">Brightness: ${sh.brightness}</span>`);
           }
         }
+
       } catch {
         // Empty
       }
@@ -260,7 +272,40 @@ export default function MapCanvas({ token }: { token?: string }) {
         mapInstanceRef.current.off("zoomend", handler);
       }
     };
-  }, [ready]);
+  }, [ready, token]);
+
+  // Draw chapter bonfires (from API) and (when a chapter is selected) Roman numeral pin markers
+  useEffect(() => {
+    if (!ready || !mapInstanceRef.current || !campfireMarkersRef.current || !markersRef.current) return;
+    const campfires = campfireMarkersRef.current;
+    const pinsLayer = markersRef.current;
+    campfires.clearLayers();
+    pinsLayer.clearLayers();
+
+    for (const ch of chaptersData) {
+      const icon = getCampfirePinDivIcon({ active: true, size: 44 });
+      const m = L.marker([ch.lat, ch.lng], { icon }).addTo(campfires);
+      m.bindPopup(
+        `<span class="font-cinzel">${escapeHtml(ch.tier_title)}</span><br/><small class="text-gray-500">Click to see events</small>`
+      );
+      m.on("click", () => setSelectedChapterId(ch.tier_id));
+    }
+
+    if (selectedChapterId !== null) {
+      const chapterPins = pinsData
+        .filter((p) => p.tier_id === selectedChapterId)
+        .sort((a, b) => (a.created_at || "").localeCompare(b.created_at || ""));
+      const chapterTitle = chapterPins[0]?.tier_title ?? "Chapter";
+      chapterPins.forEach((pin, index) => {
+        const roman = toRoman(index + 1);
+        const icon = getRomanNumeralDivIcon(roman, 28);
+        const marker = L.marker([pin.lat, pin.lng], { icon }).addTo(pinsLayer);
+        marker.bindPopup(
+          `<a href="/pins/${pin.id}" class="font-cinzel">${escapeHtml(chapterTitle)} — ${roman}</a>`
+        );
+      });
+    }
+  }, [ready, chaptersData, pinsData, selectedChapterId]);
 
   return (
     <div

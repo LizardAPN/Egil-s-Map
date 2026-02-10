@@ -1,3 +1,4 @@
+from geoalchemy2 import Geometry
 from sqlalchemy import Column, Integer, String, ForeignKey, DateTime
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -13,6 +14,7 @@ class BeaconTier(Base):
     title = Column(String(200), nullable=False)
     order = Column(Integer, default=0)
     chapter_summary = Column(String(2000), nullable=True)
+    location = Column(Geometry(geometry_type="POINT", srid=4326), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     user = relationship("User", back_populates="beacon_tiers")

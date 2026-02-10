@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { isValidToken } from "@/lib/api";
+import MapPicker from "./MapPicker";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -22,6 +23,8 @@ export default function CreateChapterModal({
   existingChaptersCount,
 }: CreateChapterModalProps) {
   const [title, setTitle] = useState("");
+  const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [mapPickerOpen, setMapPickerOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -36,20 +39,26 @@ export default function CreateChapterModal({
     setError(null);
 
     try {
+      const body: { title: string; order: number; lat?: number; lng?: number } = {
+        title: title.trim(),
+        order: existingChaptersCount,
+      };
+      if (location) {
+        body.lat = location.lat;
+        body.lng = location.lng;
+      }
       const res = await fetch(`${API_BASE}/beacon`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          title: title.trim(),
-          order: existingChaptersCount,
-        }),
+        body: JSON.stringify(body),
       });
 
       if (res.ok) {
         setTitle("");
+        setLocation(null);
         onCreated();
         onClose();
       } else {
@@ -110,6 +119,37 @@ export default function CreateChapterModal({
               />
             </div>
 
+            <div>
+              <label className="block text-sm text-gray-400 mb-2 font-special-elite">
+                Chapter location (bonfire on map)
+              </label>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setMapPickerOpen(true)}
+                  disabled={loading}
+                  className="px-4 py-2 bg-[#0a0a0c] border border-gray-600 hover:border-[#d4af37] font-special-elite text-gray-200 rounded transition-colors disabled:opacity-50"
+                >
+                  {location
+                    ? `${location.lat.toFixed(4)}, ${location.lng.toFixed(4)}`
+                    : "Pick on map"}
+                </button>
+                {location && (
+                  <button
+                    type="button"
+                    onClick={() => setLocation(null)}
+                    disabled={loading}
+                    className="text-gray-500 hover:text-gray-300 text-sm"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+              <p className="text-gray-500 text-xs mt-1 font-special-elite">
+                Optional. Where this chapter appears as a bonfire. You can set it later.
+              </p>
+            </div>
+
             {error && (
               <div className="text-red-400 text-sm font-special-elite">{error}</div>
             )}
@@ -134,6 +174,17 @@ export default function CreateChapterModal({
           </form>
         </motion.div>
       </motion.div>
+
+      <MapPicker
+        open={mapPickerOpen}
+        onClose={() => setMapPickerOpen(false)}
+        onPick={(lat, lng) => {
+          setLocation({ lat, lng });
+          setMapPickerOpen(false);
+        }}
+        initialLat={location?.lat ?? 55.75}
+        initialLng={location?.lng ?? 37.62}
+      />
     </AnimatePresence>
   );
 }
