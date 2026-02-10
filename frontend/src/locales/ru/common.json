@@ -1,0 +1,70 @@
+{
+  "app": {
+    "title": "Карта Эгиля",
+    "description": "Открытая платформа цифрового наследия, где жизненные пути визуализированы как карта света."
+  },
+  "nav": {
+    "map": "Карта",
+    "strongholds": "Оплоты",
+    "profile": "Профиль",
+    "addPin": "Добавить пин",
+    "admin": "Админ",
+    "signIn": "Войти",
+    "signOut": "Выйти",
+    "createStronghold": "Создать оплот",
+    "backToMap": "← Назад к карте"
+  },
+  "strongholds": {
+    "createStronghold": "Создать оплот",
+    "title": "Оплоты",
+    "subtitle": "Сообщества света. Яркость — сумма очков вдохновения всех участников.",
+    "brightness": "Яркость",
+    "member": "Участник",
+    "requestEntry": "Запросить вход",
+    "join": "Вступить",
+    "manifesto": "Манифест (по желанию)",
+    "manifestoPlaceholder": "Идеология этого сообщества...",
+    "name": "Название",
+    "location": "Местоположение",
+    "private": "Приватный (нужно одобрение для вступления)",
+    "pickOnMap": "Выбрать на карте",
+    "creating": "Создаём...",
+    "create": "Создать"
+  },
+  "map": {
+    "clickToSeeEvents": "Нажмите, чтобы увидеть события",
+    "chapter": "Глава"
+  },
+  "pins": {
+    "inspirations": "вдохновений",
+    "inspire": "Вдохновить",
+    "loading": "Загрузка..."
+  },
+  "profile": {
+    "settings": "Настройки",
+    "privacy": "Конфиденциальность",
+    "chronicleTitle": "Хроника {{username}}",
+    "allChapters": "Все главы",
+    "newChapter": "Новая глава",
+    "recordDeed": "Записать деяние",
+    "noMomentsYet": "Пока нет записанных моментов. Начните свой путь, записав первое деяние.",
+    "noMomentsInChapter": "В этой главе пока нет моментов.",
+    "private": "Приватно",
+    "public": "Публично",
+    "createNewChapter": "Создать новую главу",
+    "chapterTitle": "Название главы",
+    "chapterTitlePlaceholder": "напр., Москва, Путь на Восток",
+    "chapterLocation": "Местоположение главы (костёр на карте)",
+    "pickOnMap": "Выбрать на карте",
+    "clear": "Сбросить",
+    "chapterLocationHint": "По желанию. Где эта глава отображается как костёр. Можно задать позже.",
+    "cancel": "Отмена",
+    "creating": "Создаём...",
+    "createChapter": "Создать главу"
+  },
+  "moments": {
+    "private": "Приватно",
+    "privateMoment": "Приватный момент",
+    "unknownContentType": "Неизвестный тип контента"
+  }
+}

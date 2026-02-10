@@ -1,5 +1,6 @@
 import logging
-from fastapi import APIRouter, Depends, HTTPException
+from typing import Optional
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from geoalchemy2 import WKTElement
@@ -25,8 +26,15 @@ def _tier_lat_lng(tier: BeaconTier) -> tuple[float | None, float | None]:
         return (None, None)
 
 
+def _tier_title(t: "BeaconTier", locale: str | None) -> str:
+    if locale == "en":
+        return t.title_en or t.title_ru or t.title
+    return t.title_ru or t.title_en or t.title
+
+
 @router.get("", response_model=list[BeaconTierResponse])
 async def list_my_tiers(
+    locale: Optional[str] = Query(None, description="Locale for title (ru, en)"),
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -37,7 +45,7 @@ async def list_my_tiers(
     return [
         BeaconTierResponse(
             id=t.id,
-            title=t.title,
+            title=_tier_title(t, locale),
             order=t.order,
             chapter_summary=t.chapter_summary,
             lat=lat,
@@ -65,6 +73,8 @@ async def create_tier(
         tier = BeaconTier(
             user_id=user.id,
             title=data.title,
+            title_ru=data.title,
+            title_en=data.title,
             order=data.order,
             chapter_summary=data.chapter_summary,
             location=WKTElement(f"POINT({data.lng} {data.lat})", srid=4326)
@@ -77,7 +87,7 @@ async def create_tier(
         lat, lng = _tier_lat_lng(tier)
         return BeaconTierResponse(
             id=tier.id,
-            title=tier.title,
+            title=_tier_title(tier, None),
             order=tier.order,
             chapter_summary=tier.chapter_summary,
             lat=lat,
@@ -109,6 +119,8 @@ async def update_tier(
     if not tier:
         raise HTTPException(status_code=404, detail="Tier not found")
     tier.title = data.title
+    tier.title_ru = data.title
+    tier.title_en = data.title
     tier.order = data.order
     tier.chapter_summary = data.chapter_summary
     if data.lat is not None and data.lng is not None:

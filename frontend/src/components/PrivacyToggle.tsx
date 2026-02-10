@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 
 type PrivacyToggleProps = {
   isPrivate: boolean;
@@ -12,6 +13,7 @@ type PrivacyToggleProps = {
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 export default function PrivacyToggle({ isPrivate: initialIsPrivate, onToggle, token }: PrivacyToggleProps) {
+  const { t } = useTranslation("common");
   const [isPrivate, setIsPrivate] = useState(initialIsPrivate);
   const [loading, setLoading] = useState(false);
 
@@ -103,7 +105,7 @@ export default function PrivacyToggle({ isPrivate: initialIsPrivate, onToggle, t
         </motion.svg>
       )}
       <span className="text-sm font-cinzel text-amber-400">
-        {isPrivate ? "Private" : "Public"}
+        {isPrivate ? t("profile.private") : t("profile.public")}
       </span>
     </button>
   );

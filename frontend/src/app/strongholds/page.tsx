@@ -2,11 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { useSession, signOut } from "next-auth/react";
+import { useTranslation } from "react-i18next";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import AddressSearch from "@/components/AddressSearch";
-import { isValidToken } from "@/lib/api";
+import { isValidToken, withLocale } from "@/lib/api";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { isValidLocale, type Locale } from "@/lib/i18n-utils";
 
 const MapPicker = dynamic(() => import("@/components/MapPicker"), { ssr: false });
 
@@ -15,9 +18,11 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 function CreateStrongholdForm({
   token,
   onCreated,
+  t,
 }: {
   token?: string;
   onCreated: () => void;
+  t: (key: string) => string;
 }) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -64,24 +69,24 @@ function CreateStrongholdForm({
 
   return (
     <form onSubmit={handleSubmit} className="mb-8 p-4 bg-[#1a1a1e] border-2 border-[#3a3a3e] rounded-sm shadow-[inset_0_0_20px_rgba(0,0,0,0.5)]">
-      <h2 className="font-medium mb-2 font-cinzel">Create Stronghold</h2>
+      <h2 className="font-medium mb-2 font-cinzel">{t("strongholds.createStronghold")}</h2>
       <div className="space-y-4">
         <div>
           <input
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Name"
+            placeholder={t("strongholds.name")}
             className="w-full px-3 py-2 bg-[#0a0a0c] border border-gray-600 focus:border-[#d4af37] font-special-elite"
             required
           />
         </div>
         <div>
-          <label className="block text-sm text-gray-400 mb-1 font-special-elite">Manifesto (optional)</label>
+          <label className="block text-sm text-gray-400 mb-1 font-special-elite">{t("strongholds.manifesto")}</label>
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="The ideology of this community..."
+            placeholder={t("strongholds.manifestoPlaceholder")}
             rows={3}
             className="w-full px-3 py-2 bg-[#0a0a0c] border border-gray-600 focus:border-[#d4af37] font-special-elite"
           />
@@ -93,10 +98,10 @@ function CreateStrongholdForm({
             checked={isPrivate}
             onChange={(e) => setIsPrivate(e.target.checked)}
           />
-          <label htmlFor="is_private" className="font-special-elite text-sm">Private (require approval to join)</label>
+          <label htmlFor="is_private" className="font-special-elite text-sm">{t("strongholds.private")}</label>
         </div>
         <div>
-          <label className="block text-sm text-gray-400 mb-1 font-special-elite">Location</label>
+          <label className="block text-sm text-gray-400 mb-1 font-special-elite">{t("strongholds.location")}</label>
           <AddressSearch
             onSelect={({ lat: la, lng: ln, display_name }) => {
               setLat(la);
@@ -111,7 +116,7 @@ function CreateStrongholdForm({
               onClick={() => setMapPickerOpen(true)}
               className="px-4 py-2 bg-[#d4af37] text-gray-900 hover:bg-[#b8860b] hover:brightness-110 font-cinzel"
             >
-              Pick on Map
+              {t("strongholds.pickOnMap")}
             </button>
             {locationLabel && (
               <span className="text-sm text-gray-400 truncate max-w-[200px] font-special-elite" title={locationLabel}>
@@ -125,7 +130,7 @@ function CreateStrongholdForm({
           disabled={loading}
           className="px-4 py-2 bg-[#d4af37] text-gray-900 font-cinzel font-medium hover:bg-[#b8860b] hover:brightness-110 disabled:opacity-50"
         >
-          {loading ? "Creating..." : "Create"}
+          {loading ? t("strongholds.creating") : t("strongholds.create")}
         </button>
       </div>
       <MapPicker
@@ -146,6 +151,8 @@ function CreateStrongholdForm({
 function StrongholdsPage() {
   const router = useRouter();
   const { data: session } = useSession();
+  const { i18n, t } = useTranslation("common");
+  const locale: Locale = isValidLocale(i18n.language) ? i18n.language : "en";
   const [strongholds, setStrongholds] = useState<
     { id: number; name: string; lat: number; lng: number; brightness: number; is_member?: boolean; is_private?: boolean }[]
   >([]);
@@ -153,11 +160,12 @@ function StrongholdsPage() {
 
   useEffect(() => {
     const headers: HeadersInit = isValidToken(token) ? { Authorization: `Bearer ${token}` } : {};
-    fetch(`${API_BASE}/strongholds`, { headers })
+    const path = withLocale("/strongholds", locale);
+    fetch(`${API_BASE}${path}`, { headers })
       .then((r) => r.json())
       .then(setStrongholds)
       .catch(() => setStrongholds([]));
-  }, [token]);
+  }, [token, locale]);
 
   return (
     <main className="min-h-screen">
@@ -165,32 +173,34 @@ function StrongholdsPage() {
         <Link href="/" className="text-xl font-bold text-amber-400 font-cinzel uppercase">
           Egil&apos;s Map
         </Link>
-        <nav className="flex gap-4 font-cinzel uppercase">
-          <Link href="/map">Map</Link>
+        <nav className="flex items-center gap-4 font-cinzel uppercase">
+          <Link href="/map">{t("nav.map")}</Link>
           <Link href="/strongholds" className="text-amber-400">
-            Strongholds
+            {t("nav.strongholds")}
           </Link>
           {session ? (
             <>
-              <Link href="/profile">Profile</Link>
+              <Link href="/profile">{t("nav.profile")}</Link>
               <button type="button" onClick={() => signOut({ callbackUrl: "/" })} className="text-inherit hover:underline bg-transparent border-none cursor-pointer p-0 font-inherit">
-              Sign Out
-            </button>
+                {t("nav.signOut")}
+              </button>
             </>
           ) : (
-            <Link href="/login">Sign In</Link>
+            <Link href="/login">{t("nav.signIn")}</Link>
           )}
+          <LanguageSwitcher />
         </nav>
       </header>
       <div className="p-8">
-        <h1 className="text-2xl font-bold mb-6 font-cinzel">Strongholds</h1>
+        <h1 className="text-2xl font-bold mb-6 font-cinzel">{t("strongholds.title")}</h1>
         <p className="text-gray-400 mb-8 font-special-elite">
-          Communities of light. Brightness is the sum of all members&apos; inspiration scores.
+          {t("strongholds.subtitle")}
         </p>
         {session && (
           <CreateStrongholdForm
             token={(session as { accessToken?: string })?.accessToken}
             onCreated={() => window.location.reload()}
+            t={t}
           />
         )}
         <div className="grid gap-4">
@@ -206,19 +216,19 @@ function StrongholdsPage() {
               <div>
                 <h2 className="font-medium font-cinzel">{s.name}</h2>
                 <p className="text-sm text-gray-400 font-special-elite">
-                  Brightness: {s.brightness} | {s.lat.toFixed(2)}, {s.lng.toFixed(2)}
+                  {t("strongholds.brightness")}: {s.brightness} | {s.lat.toFixed(2)}, {s.lng.toFixed(2)}
                 </p>
               </div>
               {session && (
                 s.is_member ? (
-                  <span className="px-4 py-2 text-sm text-gray-400 font-special-elite" onClick={(e) => e.stopPropagation()}>Member</span>
+                  <span className="px-4 py-2 text-sm text-gray-400 font-special-elite" onClick={(e) => e.stopPropagation()}>{t("strongholds.member")}</span>
                 ) : s.is_private ? (
                   <Link
                     href={`/strongholds/${s.id}`}
                     onClick={(e) => e.stopPropagation()}
                     className="px-4 py-2 bg-[#d4af37] text-gray-900 hover:bg-[#b8860b] hover:brightness-110 font-cinzel"
                   >
-                    Request Entry
+                    {t("strongholds.requestEntry")}
                   </Link>
                 ) : (
                   <button
@@ -255,7 +265,7 @@ function StrongholdsPage() {
                     className="px-4 py-2 bg-[#d4af37] text-gray-900 hover:bg-[#b8860b] hover:brightness-110 font-cinzel"
                     type="button"
                   >
-                    Join
+                    {t("strongholds.join")}
                   </button>
                 )
               )}

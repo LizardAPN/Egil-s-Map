@@ -2,11 +2,13 @@
 
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
+import { useTranslation } from "react-i18next";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import AddressSearch from "@/components/AddressSearch";
-import { isValidToken } from "@/lib/api";
+import { isValidToken, withLocale } from "@/lib/api";
+import { isValidLocale, type Locale } from "@/lib/i18n-utils";
 
 const MapPicker = dynamic(() => import("@/components/MapPicker"), { ssr: false });
 
@@ -14,6 +16,8 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 export default function CreatePinPage() {
   const { data: session, status } = useSession();
+  const { i18n } = useTranslation();
+  const locale: Locale = isValidLocale(i18n.language) ? i18n.language : "en";
   const router = useRouter();
   const [tiers, setTiers] = useState<{ id: number; title: string }[]>([]);
   const [tierId, setTierId] = useState<number | null>(null);
@@ -36,7 +40,8 @@ export default function CreatePinPage() {
 
   useEffect(() => {
     if (!isValidToken(token)) return;
-    fetch(`${API_BASE}/beacon`, { headers: { Authorization: `Bearer ${token}` } })
+    const path = withLocale("/beacon", locale);
+    fetch(`${API_BASE}${path}`, { headers: { Authorization: `Bearer ${token}` } })
       .then(async (r) => {
         const data = await r.json();
         if (!r.ok) {
@@ -52,7 +57,7 @@ export default function CreatePinPage() {
         console.error("Failed to load beacon tiers:", err);
         setTiers([]);
       });
-  }, [token]);
+  }, [token, locale]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

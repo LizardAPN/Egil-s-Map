@@ -18,6 +18,7 @@ async def get_chapters(
     max_lat: float = Query(...),
     min_lng: float = Query(...),
     max_lng: float = Query(...),
+    locale: Optional[str] = Query(None, description="Locale for tier_title (ru, en)"),
     user: Optional[User] = Depends(get_current_user_optional),
     db: AsyncSession = Depends(get_db),
 ):
@@ -25,10 +26,11 @@ async def get_chapters(
     if user is None:
         return []
 
+    title_col = "title_en" if locale == "en" else "title_ru"
     result = await db.execute(
-        text("""
+        text(f"""
             WITH tier_in_bbox AS (
-                SELECT t.id AS tier_id, t.title AS tier_title,
+                SELECT t.id AS tier_id, t.{title_col} AS tier_title,
                        ST_Y(t.location::geometry) AS lat, ST_X(t.location::geometry) AS lng
                 FROM beacon_tiers t
                 WHERE t.user_id = :user_id
@@ -37,7 +39,7 @@ async def get_chapters(
                 AND ST_Y(t.location::geometry) BETWEEN :min_lat AND :max_lat
             ),
             tier_from_pins AS (
-                SELECT DISTINCT ON (p.tier_id) p.tier_id, t.title AS tier_title,
+                SELECT DISTINCT ON (p.tier_id) p.tier_id, t.{title_col} AS tier_title,
                        ST_Y(p.location::geometry) AS lat, ST_X(p.location::geometry) AS lng
                 FROM legacy_pins p
                 JOIN beacon_tiers t ON t.id = p.tier_id
@@ -125,6 +127,7 @@ async def get_pins(
     max_lat: float = Query(...),
     min_lng: float = Query(...),
     max_lng: float = Query(...),
+    locale: Optional[str] = Query(None, description="Locale for tier_title (ru, en)"),
     user: Optional[User] = Depends(get_current_user_optional),
     db: AsyncSession = Depends(get_db),
 ):
@@ -137,10 +140,11 @@ async def get_pins(
     center_lat = (min_lat + max_lat) / 2
     # Approximate distance in meters
     distance_meters = 111000 * ((max_lat - min_lat) ** 2 + (max_lng - min_lng) ** 2) ** 0.5
+    title_col = "title_en" if locale == "en" else "title_ru"
 
     result = await db.execute(
-        text("""
-            SELECT p.id, p.tier_id, t.title as tier_title, p.user_id,
+        text(f"""
+            SELECT p.id, p.tier_id, t.{title_col} as tier_title, p.user_id,
                    ST_X(p.location::geometry) as lng, ST_Y(p.location::geometry) as lat,
                    p.content_type, p.content_url, p.text_content, p.is_private, p.is_echo,
                    (SELECT COUNT(*) FROM inspirations WHERE to_pin_id = p.id) as insp_count,
@@ -195,15 +199,17 @@ async def get_strongholds(
     max_lat: float = Query(...),
     min_lng: float = Query(...),
     max_lng: float = Query(...),
+    locale: Optional[str] = Query(None, description="Locale for name (ru, en)"),
     db: AsyncSession = Depends(get_db),
 ):
     center_lng = (min_lng + max_lng) / 2
     center_lat = (min_lat + max_lat) / 2
     distance_meters = 111000 * ((max_lat - min_lat) ** 2 + (max_lng - min_lng) ** 2) ** 0.5
+    name_col = "name_en" if locale == "en" else "name_ru"
 
     result = await db.execute(
-        text("""
-            SELECT s.id, s.name, ST_X(s.location::geometry) as lng, ST_Y(s.location::geometry) as lat,
+        text(f"""
+            SELECT s.id, s.{name_col} as name, ST_X(s.location::geometry) as lng, ST_Y(s.location::geometry) as lat,
                    COALESCE(SUM(u.total_inspiration_score), 0)::int as brightness
             FROM strongholds s
             LEFT JOIN stronghold_members sm ON sm.stronghold_id = s.id
@@ -215,7 +221,7 @@ async def get_strongholds(
             )
             AND ST_X(s.location::geometry) BETWEEN :min_lng AND :max_lng
             AND ST_Y(s.location::geometry) BETWEEN :min_lat AND :max_lat
-            GROUP BY s.id, s.name, s.location
+            GROUP BY s.id, s.name_ru, s.name_en, s.location
         """),
         {
             "center_lng": center_lng,

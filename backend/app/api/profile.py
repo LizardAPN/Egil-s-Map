@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException
+from typing import Optional
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from geoalchemy2.shape import to_shape
@@ -14,8 +15,18 @@ from app.schemas.user import UserSettingsUpdate, UserSettingsResponse
 router = APIRouter()
 
 
+def _tier_title(tier, locale: str | None) -> str:
+    if locale == "en":
+        return (tier.title_en or tier.title_ru or tier.title)
+    return (tier.title_ru or tier.title_en or tier.title)
+
+
 @router.get("/{username}/beacon", response_model=BeaconResponse)
-async def get_beacon(username: str, db: AsyncSession = Depends(get_db)):
+async def get_beacon(
+    username: str,
+    locale: Optional[str] = Query(None, description="Locale for tier titles (ru, en)"),
+    db: AsyncSession = Depends(get_db),
+):
     result = await db.execute(select(User).where(User.username == username))
     user = result.scalar_one_or_none()
     if not user:
@@ -54,7 +65,7 @@ async def get_beacon(username: str, db: AsyncSession = Depends(get_db)):
         tier_responses.append(
             BeaconTierWithPins(
                 id=tier.id,
-                title=tier.title,
+                title=_tier_title(tier, locale),
                 order=tier.order,
                 chapter_summary=tier.chapter_summary,
                 lat=lat,

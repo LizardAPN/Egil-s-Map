@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 
 export type Moment = {
   id: number;
@@ -16,6 +17,7 @@ type MomentCardProps = {
 };
 
 export default function MomentCard({ moment, onMomentClick }: MomentCardProps) {
+  const { t } = useTranslation("common");
   const isQuote = moment.content_type === "text" && moment.text_content && moment.text_content.length < 200;
   const isNote = moment.content_type === "text" && moment.text_content && moment.text_content.length >= 200;
   const isMedia = moment.content_type === "photo" || moment.content_type === "video";
@@ -63,7 +65,7 @@ export default function MomentCard({ moment, onMomentClick }: MomentCardProps) {
           )}
           {moment.is_private && (
             <div className="absolute top-2 right-2 bg-black/50 text-amber-400 px-2 py-1 rounded text-xs font-cinzel">
-              Private
+              {t("moments.private")}
             </div>
           )}
         </div>
@@ -71,7 +73,7 @@ export default function MomentCard({ moment, onMomentClick }: MomentCardProps) {
 
       {!isQuote && !isNote && !isMedia && (
         <div className="p-4 bg-gray-800/50 border border-gray-700 rounded cursor-pointer hover:bg-gray-800/70 transition-colors">
-          <p className="text-gray-400 text-sm">Unknown content type</p>
+          <p className="text-gray-400 text-sm">{t("moments.unknownContentType")}</p>
         </div>
       )}
     </motion.div>
