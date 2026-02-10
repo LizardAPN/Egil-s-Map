@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import "leaflet/dist/leaflet.css";
 import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
@@ -9,10 +9,6 @@ const MapCanvas = dynamic(() => import("./MapCanvas"), { ssr: false });
 
 export default function MapView() {
   const { data: session, status } = useSession();
-
-  useEffect(() => {
-    import("leaflet/dist/leaflet.css");
-  }, []);
 
   const token = (session as { accessToken?: string })?.accessToken;
 
