@@ -41,6 +41,11 @@ _cors_origins = [
     "http://127.0.0.1:3002",
     "http://127.0.0.1:3003",
     "http://127.0.0.1:3005",
+    # Production
+    "http://egilsmap.ru",
+    "https://egilsmap.ru",
+    "http://www.egilsmap.ru",
+    "https://www.egilsmap.ru",
 ]
 app.add_middleware(
     CORSMiddleware,
