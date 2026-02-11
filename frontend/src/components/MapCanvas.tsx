@@ -1,11 +1,13 @@
 "use client";
 
-import { useRef, useEffect, useState, useMemo } from "react";
+import { useRef, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import "leaflet.heat";
 import { getCampfirePinDivIcon } from "./icons/CampfirePinIcon";
 import { getRomanNumeralDivIcon, toRoman } from "./icons/RomanNumeralIcon";
+import { formatChapterDateRange } from "@/lib/date-utils";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -55,6 +57,7 @@ function localeToMaptilerLanguage(locale: string): string {
 
 type MapCanvasProps = { token?: string; locale?: string };
 export default function MapCanvas({ token, locale = "en" }: MapCanvasProps) {
+  const { t } = useTranslation("common");
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const heatLayerRef = useRef<L.Layer | null>(null);
@@ -65,7 +68,15 @@ export default function MapCanvas({ token, locale = "en" }: MapCanvasProps) {
   const maptilerLayerRef = useRef<{ setLanguage: (lang: string) => void } | null>(null);
   const [ready, setReady] = useState(false);
   const [pinsData, setPinsData] = useState<PinRecord[]>([]);
-  const [chaptersData, setChaptersData] = useState<{ tier_id: number; tier_title: string; lat: number; lng: number }[]>([]);
+  const [chaptersData, setChaptersData] = useState<{
+    tier_id: number;
+    tier_title: string;
+    lat: number;
+    lng: number;
+    is_active?: boolean;
+    started_at?: string | null;
+    ended_at?: string | null;
+  }[]>([]);
   const [selectedChapterId, setSelectedChapterId] = useState<number | null>(null);
 
   useEffect(() => {
@@ -184,7 +195,14 @@ export default function MapCanvas({ token, locale = "en" }: MapCanvasProps) {
       }
       if (map) {
         map.off("zoomend");
-        map.remove();
+        try {
+          const container = map.getContainer();
+          if (container && document.body.contains(container)) {
+            map.remove();
+          }
+        } catch {
+          // Leaflet pan/zoom animations may fire after unmount; ignore classList errors
+        }
       }
       mapInstanceRef.current = null;
       markersRef.current = null;
@@ -242,7 +260,17 @@ export default function MapCanvas({ token, locale = "en" }: MapCanvasProps) {
         if (!mapInstanceRef.current) return;
 
         setPinsData((pinsRaw as PinRecord[]) || []);
-        setChaptersData((chaptersRaw as { tier_id: number; tier_title: string; lat: number; lng: number }[]) || []);
+        setChaptersData(
+          (chaptersRaw as {
+            tier_id: number;
+            tier_title: string;
+            lat: number;
+            lng: number;
+            is_active?: boolean;
+            started_at?: string | null;
+            ended_at?: string | null;
+          }[]) || []
+        );
 
         const points: [number, number, number][] = (
           heatData as { lat: number; lng: number; intensity: number }[]
@@ -335,10 +363,14 @@ export default function MapCanvas({ token, locale = "en" }: MapCanvasProps) {
     pinsLayer.clearLayers();
 
     for (const ch of chaptersData) {
-      const icon = getCampfirePinDivIcon({ active: true, size: 44 });
+      const active = ch.is_active !== false; // default true for backward compat
+      const icon = getCampfirePinDivIcon({ active, size: 44 });
       const m = L.marker([ch.lat, ch.lng], { icon }).addTo(campfires);
+      const dateRange = formatChapterDateRange(ch.started_at, ch.ended_at, locale, t("map.present"));
       m.bindPopup(
-        `<span class="font-cinzel">${escapeHtml(ch.tier_title)}</span><br/><small class="text-gray-500">Click to see events</small>`
+        `<span class="font-cinzel">${escapeHtml(ch.tier_title)}</span>` +
+          (dateRange ? `<br/><small class="text-gray-500">${escapeHtml(dateRange)}</small>` : "") +
+          `<br/><small class="text-gray-500">Click to see events</small>`
       );
       m.on("click", () => setSelectedChapterId(ch.tier_id));
     }
@@ -357,7 +389,7 @@ export default function MapCanvas({ token, locale = "en" }: MapCanvasProps) {
         );
       });
     }
-  }, [ready, chaptersData, pinsData, selectedChapterId]);
+  }, [ready, chaptersData, pinsData, selectedChapterId, locale, t]);
 
   return (
     <div

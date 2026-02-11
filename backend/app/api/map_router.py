@@ -31,7 +31,9 @@ async def get_chapters(
         text(f"""
             WITH tier_in_bbox AS (
                 SELECT t.id AS tier_id, t.{title_col} AS tier_title,
-                       ST_Y(t.location::geometry) AS lat, ST_X(t.location::geometry) AS lng
+                       ST_Y(t.location::geometry) AS lat, ST_X(t.location::geometry) AS lng,
+                       (t.ended_at IS NULL) AS is_active,
+                       t.started_at, t.ended_at
                 FROM beacon_tiers t
                 WHERE t.user_id = :user_id
                 AND t.location IS NOT NULL
@@ -40,7 +42,9 @@ async def get_chapters(
             ),
             tier_from_pins AS (
                 SELECT DISTINCT ON (p.tier_id) p.tier_id, t.{title_col} AS tier_title,
-                       ST_Y(p.location::geometry) AS lat, ST_X(p.location::geometry) AS lng
+                       ST_Y(p.location::geometry) AS lat, ST_X(p.location::geometry) AS lng,
+                       (t.ended_at IS NULL) AS is_active,
+                       t.started_at, t.ended_at
                 FROM legacy_pins p
                 JOIN beacon_tiers t ON t.id = p.tier_id
                 WHERE t.user_id = :user_id
@@ -48,11 +52,15 @@ async def get_chapters(
                 AND ST_X(p.location::geometry) BETWEEN :min_lng AND :max_lng
                 AND ST_Y(p.location::geometry) BETWEEN :min_lat AND :max_lat
                 ORDER BY p.tier_id, p.created_at
+            ),
+            combined AS (
+                SELECT tier_id, tier_title, lat, lng, is_active, started_at, ended_at FROM tier_in_bbox
+                UNION ALL
+                SELECT tfp.tier_id, tfp.tier_title, tfp.lat, tfp.lng, tfp.is_active, tfp.started_at, tfp.ended_at FROM tier_from_pins tfp
+                WHERE NOT EXISTS (SELECT 1 FROM tier_in_bbox tib WHERE tib.tier_id = tfp.tier_id)
             )
-            SELECT tier_id, tier_title, lat, lng FROM tier_in_bbox
-            UNION ALL
-            SELECT tfp.tier_id, tfp.tier_title, tfp.lat, tfp.lng FROM tier_from_pins tfp
-            WHERE NOT EXISTS (SELECT 1 FROM tier_in_bbox tib WHERE tib.tier_id = tfp.tier_id)
+            SELECT tier_id, tier_title, lat, lng, is_active, started_at, ended_at FROM combined
+            ORDER BY (ended_at IS NULL), started_at ASC NULLS LAST
         """),
         {
             "user_id": user.id,
@@ -64,7 +72,15 @@ async def get_chapters(
     )
     rows = result.fetchall()
     return [
-        {"tier_id": r[0], "tier_title": r[1], "lat": r[2], "lng": r[3]}
+        {
+            "tier_id": r[0],
+            "tier_title": r[1],
+            "lat": r[2],
+            "lng": r[3],
+            "is_active": r[4],
+            "started_at": r[5].isoformat() if r[5] else None,
+            "ended_at": r[6].isoformat() if r[6] else None,
+        }
         for r in rows
     ]
 

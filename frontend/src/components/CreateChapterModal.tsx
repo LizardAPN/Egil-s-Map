@@ -1,36 +1,54 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import dynamic from "next/dynamic";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import { isValidToken } from "@/lib/api";
+import { isValidLocale, type Locale } from "@/lib/i18n-utils";
+import DateInput from "./DateInput";
 
 const MapPicker = dynamic(() => import("./MapPicker"), { ssr: false });
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
+type ChapterOption = { id: number; title: string; order: number };
 
 type CreateChapterModalProps = {
   isOpen: boolean;
   onClose: () => void;
   onCreated: () => void;
   token?: string;
-  existingChaptersCount: number;
+  existingChapters: ChapterOption[];
 };
+
+/** End of today (no future dates) */
+function todayEnd(): Date {
+  const d = new Date();
+  d.setHours(23, 59, 59, 999);
+  return d;
+}
 
 export default function CreateChapterModal({
   isOpen,
   onClose,
   onCreated,
   token,
-  existingChaptersCount,
+  existingChapters,
 }: CreateChapterModalProps) {
-  const { t } = useTranslation("common");
+  const { t, i18n } = useTranslation("common");
+  const locale: Locale = isValidLocale(i18n.language) ? i18n.language : "en";
   const [title, setTitle] = useState("");
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [mapPickerOpen, setMapPickerOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isCurrentChapter, setIsCurrentChapter] = useState(true);
+  const [insertBeforeId, setInsertBeforeId] = useState<number | null>(null);
+  const [startedAt, setStartedAt] = useState<Date | null>(null);
+  const [endedAt, setEndedAt] = useState<Date | null>(null);
+
+  const maxDate = useMemo(() => todayEnd(), []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -38,18 +56,43 @@ export default function CreateChapterModal({
       setError("Please enter a chapter title");
       return;
     }
+    if (!isCurrentChapter && (!startedAt || !endedAt)) {
+      setError(t("profile.enterPeriodForCompleted"));
+      return;
+    }
+    if (!isCurrentChapter && startedAt && endedAt && startedAt > endedAt) {
+      setError(t("profile.startBeforeEnd"));
+      return;
+    }
 
     setLoading(true);
     setError(null);
 
     try {
-      const body: { title: string; order: number; lat?: number; lng?: number } = {
+      const body: {
+        title: string;
+        order: number;
+        lat?: number;
+        lng?: number;
+        started_at?: string;
+        ended_at?: string;
+        insert_before_id?: number;
+      } = {
         title: title.trim(),
-        order: existingChaptersCount,
+        order: existingChapters.length,
       };
       if (location) {
         body.lat = location.lat;
         body.lng = location.lng;
+      }
+      if (insertBeforeId !== null) {
+        body.insert_before_id = insertBeforeId;
+      }
+      if (startedAt) {
+        body.started_at = startedAt.toISOString();
+      }
+      if (!isCurrentChapter && endedAt) {
+        body.ended_at = endedAt.toISOString();
       }
       const res = await fetch(`${API_BASE}/beacon`, {
         method: "POST",
@@ -63,6 +106,10 @@ export default function CreateChapterModal({
       if (res.ok) {
         setTitle("");
         setLocation(null);
+        setIsCurrentChapter(true);
+        setInsertBeforeId(null);
+        setStartedAt(null);
+        setEndedAt(null);
         onCreated();
         onClose();
       } else {
@@ -123,6 +170,108 @@ export default function CreateChapterModal({
               />
             </div>
 
+            {existingChapters.length > 0 && (
+              <div>
+                <label className="block text-sm text-gray-400 mb-2 font-special-elite">
+                  {t("profile.insertBefore")}
+                </label>
+                <select
+                  value={insertBeforeId ?? ""}
+                  onChange={(e) => setInsertBeforeId(e.target.value ? Number(e.target.value) : null)}
+                  className="w-full px-4 py-2 bg-[#0a0a0c] border border-gray-600 focus:border-[#d4af37] font-special-elite text-gray-200 rounded"
+                  disabled={loading}
+                >
+                  <option value="">{t("profile.appendAtEnd")}</option>
+                  {existingChapters.map((ch) => (
+                    <option key={ch.id} value={ch.id}>
+                      {ch.title}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-gray-500 text-xs mt-1 font-special-elite">
+                  {t("profile.insertBeforeHint")}
+                </p>
+              </div>
+            )}
+
+            <div>
+              <label className="block text-sm text-gray-400 mb-2 font-special-elite">
+                {t("profile.chapterPeriod")}
+              </label>
+              <div className="flex gap-4 mb-3">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="chapterType"
+                    checked={isCurrentChapter}
+                    onChange={() => {
+                      setIsCurrentChapter(true);
+                      setEndedMonth("");
+                      setError(null);
+                    }}
+                    className="accent-amber-500"
+                  />
+                  <span>{t("profile.currentChapter")}</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="chapterType"
+                    checked={!isCurrentChapter}
+                    onChange={() => setIsCurrentChapter(false)}
+                    className="accent-amber-500"
+                  />
+                  <span>{t("profile.completedChapter")}</span>
+                </label>
+              </div>
+              <div className="flex flex-wrap items-end gap-4">
+                <div className="min-w-[180px]">
+                  <label className="block text-xs text-gray-500 mb-1 font-special-elite">
+                    {isCurrentChapter ? t("profile.startedDate") : t("profile.fromDate")}
+                  </label>
+                  <DateInput
+                    value={startedAt}
+                    onChange={(d) => {
+                      setStartedAt(d);
+                      setError(null);
+                    }}
+                    max={maxDate}
+                    placeholder="__.__.____"
+                    disabled={loading}
+                    locale={locale}
+                    className="w-full px-4 py-2 bg-[#0a0a0c] border border-gray-600 focus:border-[#d4af37] font-special-elite text-gray-200 rounded"
+                  />
+                </div>
+                {!isCurrentChapter ? (
+                  <div className="min-w-[180px]">
+                    <label className="block text-xs text-gray-500 mb-1 font-special-elite">
+                      {t("profile.toDate")}
+                    </label>
+                    <DateInput
+                      value={endedAt}
+                      onChange={(d) => {
+                        setEndedAt(d);
+                        setError(null);
+                      }}
+                      max={maxDate}
+                      min={startedAt ?? undefined}
+                      placeholder="__.__.____"
+                      disabled={loading}
+                      locale={locale}
+                      className="w-full px-4 py-2 bg-[#0a0a0c] border border-gray-600 focus:border-[#d4af37] font-special-elite text-gray-200 rounded"
+                    />
+                  </div>
+                ) : (
+                  <span className="text-gray-500 text-sm font-special-elite pb-2">
+                    — {t("profile.ongoing")}
+                  </span>
+                )}
+              </div>
+              <p className="text-gray-500 text-xs mt-1 font-special-elite">
+                {t("profile.periodHint")}
+              </p>
+            </div>
+
             <div>
               <label className="block text-sm text-gray-400 mb-2 font-special-elite">
                 {t("profile.chapterLocation")}
@@ -169,7 +318,11 @@ export default function CreateChapterModal({
               </button>
               <button
                 type="submit"
-                disabled={loading || !title.trim()}
+                disabled={
+                  loading ||
+                  !title.trim() ||
+                  (!isCurrentChapter && (!startedAt || !endedAt))
+                }
                 className="flex-1 py-2 bg-[#d4af37] text-gray-900 hover:bg-[#b8860b] hover:brightness-110 font-cinzel font-medium rounded transition-colors disabled:opacity-50"
               >
                 {loading ? t("profile.creating") : t("profile.createChapter")}

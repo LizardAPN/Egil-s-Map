@@ -33,7 +33,8 @@
   },
   "map": {
     "clickToSeeEvents": "Click to see events",
-    "chapter": "Chapter"
+    "chapter": "Chapter",
+    "present": "present"
   },
   "pins": {
     "inspirations": "inspirations",
@@ -60,7 +61,26 @@
     "chapterLocationHint": "Optional. Where this chapter appears as a bonfire. You can set it later.",
     "cancel": "Cancel",
     "creating": "Creating...",
-    "createChapter": "Create Chapter"
+    "createChapter": "Create Chapter",
+    "currentChapter": "Current chapter",
+    "completedChapter": "Completed chapter",
+    "startDate": "Start date",
+    "endDate": "End date",
+    "chapterPeriod": "When did this chapter occur?",
+    "fromMonth": "From (month/year)",
+    "toMonth": "To (month/year)",
+    "startedMonth": "Started (month/year)",
+    "fromDate": "From",
+    "toDate": "To",
+    "startedDate": "Started",
+    "ongoing": "Ongoing",
+    "periodHint": "Click to open date picker, or type dd.mm.yyyy. No future dates.",
+    "enterPeriodForCompleted": "Please enter start and end for completed chapters.",
+    "startBeforeEnd": "Start date must be before end date.",
+    "insertBefore": "Insert before",
+    "appendAtEnd": "Append at end",
+    "insertBeforeHint": "Insert this chapter before the selected one (for past chapters).",
+    "chapterType": "Chapter type"
   },
   "moments": {
     "private": "Private",

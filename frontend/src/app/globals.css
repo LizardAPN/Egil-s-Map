@@ -452,6 +452,10 @@ button.hover-gold:hover {
   border-color: rgba(212, 175, 55, 0.6);
 }
 
+.chapter-tab.chapter-tab-current {
+  box-shadow: 0 0 12px rgba(245, 158, 11, 0.4);
+}
+
 .chapter-tab::after {
   content: '';
   position: absolute;

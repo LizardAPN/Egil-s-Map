@@ -87,18 +87,41 @@ export default function MapPicker({
     mapInstanceRef.current = map;
 
     return () => {
-      map.off("click", handleClick);
-      map.remove();
+      const m = mapInstanceRef.current;
+      if (m) {
+        m.off("click", handleClick);
+        try {
+          m.remove();
+        } catch {
+          // Container may already be unmounted by React
+        }
+        mapInstanceRef.current = null;
+        markerRef.current = null;
+        setPicked(null);
+      }
+    };
+  }, [open, initialLat, initialLng]);
+
+  function closePicker() {
+    const m = mapInstanceRef.current;
+    if (m) {
+      m.off("click");
+      try {
+        m.remove();
+      } catch {
+        // Ignore cleanup errors
+      }
       mapInstanceRef.current = null;
       markerRef.current = null;
       setPicked(null);
-    };
-  }, [open, initialLat, initialLng]);
+    }
+    onClose();
+  }
 
   function handleConfirm() {
     if (picked) {
       onPick(picked.lat, picked.lng);
-      onClose();
+      closePicker();
     }
   }
 
@@ -107,7 +130,7 @@ export default function MapPicker({
   return (
     <div
       className="fixed inset-0 z-[100] flex items-center justify-center bg-gray-900/70 backdrop-blur-sm"
-      onClick={(e) => e.target === e.currentTarget && onClose()}
+      onClick={(e) => e.target === e.currentTarget && closePicker()}
     >
       <div
         className="relative w-[90vw] max-w-2xl h-[70vh] torn-paper-clip overflow-hidden shadow-2xl map-picker-cursor flex flex-col bg-[#1a1a1e]"
@@ -126,7 +149,7 @@ export default function MapPicker({
           <div className="flex gap-2 flex-shrink-0">
             <button
               type="button"
-              onClick={onClose}
+              onClick={closePicker}
               className="px-4 py-2 bg-gray-600 text-gray-200 font-cinzel hover:bg-gray-500 rounded"
             >
               Cancel
