@@ -70,6 +70,9 @@ async def get_beacon(
                 chapter_summary=tier.chapter_summary,
                 lat=lat,
                 lng=lng,
+                started_at=tier.started_at.isoformat() if tier.started_at else None,
+                ended_at=tier.ended_at.isoformat() if tier.ended_at else None,
+                is_active=tier.ended_at is None,
                 pins=pin_list,
             )
         )

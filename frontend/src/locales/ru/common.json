@@ -33,7 +33,8 @@
   },
   "map": {
     "clickToSeeEvents": "Нажмите, чтобы увидеть события",
-    "chapter": "Глава"
+    "chapter": "Глава",
+    "present": "настоящее время"
   },
   "pins": {
     "inspirations": "вдохновений",
@@ -60,7 +61,15 @@
     "chapterLocationHint": "По желанию. Где эта глава отображается как костёр. Можно задать позже.",
     "cancel": "Отмена",
     "creating": "Создаём...",
-    "createChapter": "Создать главу"
+    "createChapter": "Создать главу",
+    "currentChapter": "Текущая глава",
+    "completedChapter": "Завершённая глава",
+    "startDate": "Дата начала",
+    "endDate": "Дата окончания",
+    "insertBefore": "Вставить перед",
+    "appendAtEnd": "Добавить в конец",
+    "insertBeforeHint": "Вставить эту главу перед выбранной (для прошлых глав).",
+    "chapterType": "Тип главы"
   },
   "moments": {
     "private": "Приватно",

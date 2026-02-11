@@ -18,6 +18,8 @@ class BeaconTier(Base):
     chapter_summary = Column(String(2000), nullable=True)
     location = Column(Geometry(geometry_type="POINT", srid=4326), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    started_at = Column(DateTime(timezone=True), nullable=True)  # Chapter start date; fallback: created_at
+    ended_at = Column(DateTime(timezone=True), nullable=True)  # Null = current (active) chapter
 
     user = relationship("User", back_populates="beacon_tiers")
     pins = relationship("LegacyPin", back_populates="tier", order_by="LegacyPin.created_at")

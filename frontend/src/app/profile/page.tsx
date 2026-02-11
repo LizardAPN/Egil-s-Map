@@ -24,13 +24,16 @@ type BeaconTier = {
   pins: {
     id: number;
     lat: number;
-  lng: number;
+    lng: number;
     content_type: string;
     content_url: string | null;
     text_content: string | null;
     is_private: boolean;
   }[];
   chapter_summary?: string | null;
+  started_at?: string | null;
+  ended_at?: string | null;
+  is_active?: boolean;
 };
 
 export default function ProfilePage() {
@@ -113,6 +116,9 @@ export default function ProfilePage() {
       id: tier.id,
       title: tier.title,
       order: tier.order,
+      started_at: tier.started_at,
+      ended_at: tier.ended_at,
+      is_active: tier.is_active,
     }));
   }, [beaconData]);
 
@@ -263,7 +269,7 @@ export default function ProfilePage() {
         onClose={() => setIsCreateChapterOpen(false)}
         onCreated={refreshBeaconData}
         token={token}
-        existingChaptersCount={chapters.length}
+        existingChapters={chapters.map((c) => ({ id: c.id, title: c.title, order: c.order }))}
       />
     </main>
   );

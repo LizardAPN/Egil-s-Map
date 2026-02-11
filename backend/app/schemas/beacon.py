@@ -8,6 +8,9 @@ class BeaconTierCreate(BaseModel):
     chapter_summary: Optional[str] = None
     lat: Optional[float] = None
     lng: Optional[float] = None
+    started_at: Optional[str] = None  # ISO 8601
+    ended_at: Optional[str] = None  # ISO 8601; omit = current chapter
+    insert_before_id: Optional[int] = None  # Insert before this chapter id
 
 
 class BeaconTierResponse(BaseModel):
@@ -17,6 +20,9 @@ class BeaconTierResponse(BaseModel):
     chapter_summary: Optional[str] = None
     lat: Optional[float] = None
     lng: Optional[float] = None
+    started_at: Optional[str] = None
+    ended_at: Optional[str] = None
+    is_active: bool  # ended_at is null
 
     class Config:
         from_attributes = True

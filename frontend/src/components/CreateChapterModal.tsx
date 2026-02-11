@@ -10,12 +10,14 @@ const MapPicker = dynamic(() => import("./MapPicker"), { ssr: false });
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
+type ChapterOption = { id: number; title: string; order: number };
+
 type CreateChapterModalProps = {
   isOpen: boolean;
   onClose: () => void;
   onCreated: () => void;
   token?: string;
-  existingChaptersCount: number;
+  existingChapters: ChapterOption[];
 };
 
 export default function CreateChapterModal({
@@ -23,7 +25,7 @@ export default function CreateChapterModal({
   onClose,
   onCreated,
   token,
-  existingChaptersCount,
+  existingChapters,
 }: CreateChapterModalProps) {
   const { t } = useTranslation("common");
   const [title, setTitle] = useState("");
@@ -31,6 +33,10 @@ export default function CreateChapterModal({
   const [mapPickerOpen, setMapPickerOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isCurrentChapter, setIsCurrentChapter] = useState(true);
+  const [insertBeforeId, setInsertBeforeId] = useState<number | null>(null);
+  const [startedAt, setStartedAt] = useState("");
+  const [endedAt, setEndedAt] = useState("");
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -43,13 +49,30 @@ export default function CreateChapterModal({
     setError(null);
 
     try {
-      const body: { title: string; order: number; lat?: number; lng?: number } = {
+      const body: {
+        title: string;
+        order: number;
+        lat?: number;
+        lng?: number;
+        started_at?: string;
+        ended_at?: string;
+        insert_before_id?: number;
+      } = {
         title: title.trim(),
-        order: existingChaptersCount,
+        order: existingChapters.length,
       };
       if (location) {
         body.lat = location.lat;
         body.lng = location.lng;
+      }
+      if (insertBeforeId !== null) {
+        body.insert_before_id = insertBeforeId;
+      }
+      if (startedAt) {
+        body.started_at = new Date(startedAt).toISOString();
+      }
+      if (!isCurrentChapter && endedAt) {
+        body.ended_at = new Date(endedAt).toISOString();
       }
       const res = await fetch(`${API_BASE}/beacon`, {
         method: "POST",
@@ -63,6 +86,10 @@ export default function CreateChapterModal({
       if (res.ok) {
         setTitle("");
         setLocation(null);
+        setIsCurrentChapter(true);
+        setInsertBeforeId(null);
+        setStartedAt("");
+        setEndedAt("");
         onCreated();
         onClose();
       } else {
@@ -122,6 +149,87 @@ export default function CreateChapterModal({
                 disabled={loading}
               />
             </div>
+
+            {existingChapters.length > 0 && (
+              <div>
+                <label className="block text-sm text-gray-400 mb-2 font-special-elite">
+                  {t("profile.insertBefore")}
+                </label>
+                <select
+                  value={insertBeforeId ?? ""}
+                  onChange={(e) => setInsertBeforeId(e.target.value ? Number(e.target.value) : null)}
+                  className="w-full px-4 py-2 bg-[#0a0a0c] border border-gray-600 focus:border-[#d4af37] font-special-elite text-gray-200 rounded"
+                  disabled={loading}
+                >
+                  <option value="">{t("profile.appendAtEnd")}</option>
+                  {existingChapters.map((ch) => (
+                    <option key={ch.id} value={ch.id}>
+                      {ch.title}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-gray-500 text-xs mt-1 font-special-elite">
+                  {t("profile.insertBeforeHint")}
+                </p>
+              </div>
+            )}
+
+            <div>
+              <label className="block text-sm text-gray-400 mb-2 font-special-elite">
+                {t("profile.chapterType")}
+              </label>
+              <div className="flex gap-4">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="chapterType"
+                    checked={isCurrentChapter}
+                    onChange={() => setIsCurrentChapter(true)}
+                    className="accent-amber-500"
+                  />
+                  <span>{t("profile.currentChapter")}</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="chapterType"
+                    checked={!isCurrentChapter}
+                    onChange={() => setIsCurrentChapter(false)}
+                    className="accent-amber-500"
+                  />
+                  <span>{t("profile.completedChapter")}</span>
+                </label>
+              </div>
+            </div>
+
+            {!isCurrentChapter && (
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm text-gray-400 mb-2 font-special-elite">
+                    {t("profile.startDate")}
+                  </label>
+                  <input
+                    type="date"
+                    value={startedAt}
+                    onChange={(e) => setStartedAt(e.target.value)}
+                    className="w-full px-4 py-2 bg-[#0a0a0c] border border-gray-600 focus:border-[#d4af37] font-special-elite text-gray-200 rounded"
+                    disabled={loading}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-400 mb-2 font-special-elite">
+                    {t("profile.endDate")}
+                  </label>
+                  <input
+                    type="date"
+                    value={endedAt}
+                    onChange={(e) => setEndedAt(e.target.value)}
+                    className="w-full px-4 py-2 bg-[#0a0a0c] border border-gray-600 focus:border-[#d4af37] font-special-elite text-gray-200 rounded"
+                    disabled={loading}
+                  />
+                </div>
+              </div>
+            )}
 
             <div>
               <label className="block text-sm text-gray-400 mb-2 font-special-elite">
