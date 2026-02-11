@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import dynamic from "next/dynamic";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import { isValidToken } from "@/lib/api";
+import { isValidLocale, type Locale } from "@/lib/i18n-utils";
+import DateInput from "./DateInput";
 
 const MapPicker = dynamic(() => import("./MapPicker"), { ssr: false });
 
@@ -20,16 +22,11 @@ type CreateChapterModalProps = {
   existingChapters: ChapterOption[];
 };
 
-/** YYYY-MM for max attribute on month inputs (no future) */
-function thisMonth(): string {
+/** End of today (no future dates) */
+function todayEnd(): Date {
   const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-}
-
-/** Convert YYYY-MM to ISO string (first day of month, UTC) */
-function monthToISO(ym: string): string {
-  if (!ym) return "";
-  return new Date(ym + "-01T00:00:00Z").toISOString();
+  d.setHours(23, 59, 59, 999);
+  return d;
 }
 
 export default function CreateChapterModal({
@@ -39,7 +36,8 @@ export default function CreateChapterModal({
   token,
   existingChapters,
 }: CreateChapterModalProps) {
-  const { t } = useTranslation("common");
+  const { t, i18n } = useTranslation("common");
+  const locale: Locale = isValidLocale(i18n.language) ? i18n.language : "en";
   const [title, setTitle] = useState("");
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [mapPickerOpen, setMapPickerOpen] = useState(false);
@@ -47,10 +45,10 @@ export default function CreateChapterModal({
   const [error, setError] = useState<string | null>(null);
   const [isCurrentChapter, setIsCurrentChapter] = useState(true);
   const [insertBeforeId, setInsertBeforeId] = useState<number | null>(null);
-  const [startedMonth, setStartedMonth] = useState(""); // YYYY-MM
-  const [endedMonth, setEndedMonth] = useState(""); // YYYY-MM
+  const [startedAt, setStartedAt] = useState<Date | null>(null);
+  const [endedAt, setEndedAt] = useState<Date | null>(null);
 
-  const maxMonth = thisMonth();
+  const maxDate = useMemo(() => todayEnd(), []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -58,11 +56,11 @@ export default function CreateChapterModal({
       setError("Please enter a chapter title");
       return;
     }
-    if (!isCurrentChapter && (!startedMonth || !endedMonth)) {
+    if (!isCurrentChapter && (!startedAt || !endedAt)) {
       setError(t("profile.enterPeriodForCompleted"));
       return;
     }
-    if (!isCurrentChapter && startedMonth && endedMonth && startedMonth > endedMonth) {
+    if (!isCurrentChapter && startedAt && endedAt && startedAt > endedAt) {
       setError(t("profile.startBeforeEnd"));
       return;
     }
@@ -90,11 +88,11 @@ export default function CreateChapterModal({
       if (insertBeforeId !== null) {
         body.insert_before_id = insertBeforeId;
       }
-      if (startedMonth) {
-        body.started_at = monthToISO(startedMonth);
+      if (startedAt) {
+        body.started_at = startedAt.toISOString();
       }
-      if (!isCurrentChapter && endedMonth) {
-        body.ended_at = monthToISO(endedMonth);
+      if (!isCurrentChapter && endedAt) {
+        body.ended_at = endedAt.toISOString();
       }
       const res = await fetch(`${API_BASE}/beacon`, {
         method: "POST",
@@ -110,8 +108,8 @@ export default function CreateChapterModal({
         setLocation(null);
         setIsCurrentChapter(true);
         setInsertBeforeId(null);
-        setStartedMonth("");
-        setEndedMonth("");
+        setStartedAt(null);
+        setEndedAt(null);
         onCreated();
         onClose();
       } else {
@@ -227,38 +225,40 @@ export default function CreateChapterModal({
                 </label>
               </div>
               <div className="flex flex-wrap items-end gap-4">
-                <div className="min-w-[140px]">
+                <div className="min-w-[180px]">
                   <label className="block text-xs text-gray-500 mb-1 font-special-elite">
-                    {isCurrentChapter ? t("profile.startedMonth") : t("profile.fromMonth")}
+                    {isCurrentChapter ? t("profile.startedDate") : t("profile.fromDate")}
                   </label>
-                  <input
-                    type="month"
-                    value={startedMonth}
-                    onChange={(e) => {
-                      setStartedMonth(e.target.value);
+                  <DateInput
+                    value={startedAt}
+                    onChange={(d) => {
+                      setStartedAt(d);
                       setError(null);
                     }}
-                    max={maxMonth}
-                    className="w-full px-4 py-2 bg-[#0a0a0c] border border-gray-600 focus:border-[#d4af37] font-special-elite text-gray-200 rounded"
+                    max={maxDate}
+                    placeholder="__.__.____"
                     disabled={loading}
+                    locale={locale}
+                    className="w-full px-4 py-2 bg-[#0a0a0c] border border-gray-600 focus:border-[#d4af37] font-special-elite text-gray-200 rounded"
                   />
                 </div>
                 {!isCurrentChapter ? (
-                  <div className="min-w-[140px]">
+                  <div className="min-w-[180px]">
                     <label className="block text-xs text-gray-500 mb-1 font-special-elite">
-                      {t("profile.toMonth")}
+                      {t("profile.toDate")}
                     </label>
-                    <input
-                      type="month"
-                      value={endedMonth}
-                      onChange={(e) => {
-                        setEndedMonth(e.target.value);
+                    <DateInput
+                      value={endedAt}
+                      onChange={(d) => {
+                        setEndedAt(d);
                         setError(null);
                       }}
-                      max={maxMonth}
-                      min={startedMonth || undefined}
-                      className="w-full px-4 py-2 bg-[#0a0a0c] border border-gray-600 focus:border-[#d4af37] font-special-elite text-gray-200 rounded"
+                      max={maxDate}
+                      min={startedAt ?? undefined}
+                      placeholder="__.__.____"
                       disabled={loading}
+                      locale={locale}
+                      className="w-full px-4 py-2 bg-[#0a0a0c] border border-gray-600 focus:border-[#d4af37] font-special-elite text-gray-200 rounded"
                     />
                   </div>
                 ) : (
@@ -321,7 +321,7 @@ export default function CreateChapterModal({
                 disabled={
                   loading ||
                   !title.trim() ||
-                  (!isCurrentChapter && (!startedMonth || !endedMonth))
+                  (!isCurrentChapter && (!startedAt || !endedAt))
                 }
                 className="flex-1 py-2 bg-[#d4af37] text-gray-900 hover:bg-[#b8860b] hover:brightness-110 font-cinzel font-medium rounded transition-colors disabled:opacity-50"
               >
