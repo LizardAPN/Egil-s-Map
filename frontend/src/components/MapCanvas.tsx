@@ -7,6 +7,7 @@ import "leaflet/dist/leaflet.css";
 import "leaflet.heat";
 import { getCampfirePinDivIcon } from "./icons/CampfirePinIcon";
 import { getRomanNumeralDivIcon, toRoman } from "./icons/RomanNumeralIcon";
+import { formatChapterDateRange } from "@/lib/date-utils";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -17,30 +18,6 @@ function escapeHtml(s: string): string {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
-}
-
-function formatDateRange(
-  started?: string | null,
-  ended?: string | null,
-  locale = "en",
-  presentStr = "present"
-): string {
-  if (!started && !ended) return "";
-  const fmt = (s: string) => {
-    try {
-      const d = new Date(s);
-      return d.toLocaleDateString(locale === "ru" ? "ru-RU" : "en-US", {
-        month: "short",
-        year: "numeric",
-      });
-    } catch {
-      return "";
-    }
-  };
-  const startStr = started ? fmt(started) : "";
-  const endStr = ended ? fmt(ended) : presentStr;
-  if (!startStr && !endStr) return "";
-  return startStr && endStr ? `${startStr} — ${endStr}` : startStr || endStr;
 }
 
 type PinRecord = {
@@ -382,7 +359,7 @@ export default function MapCanvas({ token, locale = "en" }: MapCanvasProps) {
       const active = ch.is_active !== false; // default true for backward compat
       const icon = getCampfirePinDivIcon({ active, size: 44 });
       const m = L.marker([ch.lat, ch.lng], { icon }).addTo(campfires);
-      const dateRange = formatDateRange(ch.started_at, ch.ended_at, locale, t("map.present"));
+      const dateRange = formatChapterDateRange(ch.started_at, ch.ended_at, locale, t("map.present"));
       m.bindPopup(
         `<span class="font-cinzel">${escapeHtml(ch.tier_title)}</span>` +
           (dateRange ? `<br/><small class="text-gray-500">${escapeHtml(dateRange)}</small>` : "") +
