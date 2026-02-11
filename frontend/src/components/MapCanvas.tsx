@@ -195,7 +195,14 @@ export default function MapCanvas({ token, locale = "en" }: MapCanvasProps) {
       }
       if (map) {
         map.off("zoomend");
-        map.remove();
+        try {
+          const container = map.getContainer();
+          if (container && document.body.contains(container)) {
+            map.remove();
+          }
+        } catch {
+          // Leaflet pan/zoom animations may fire after unmount; ignore classList errors
+        }
       }
       mapInstanceRef.current = null;
       markersRef.current = null;
