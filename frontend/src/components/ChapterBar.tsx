@@ -28,7 +28,7 @@ export default function ChapterBar({
   const { t, i18n } = useTranslation("common");
   const locale: Locale = isValidLocale(i18n.language) ? i18n.language : "en";
   return (
-    <div className="w-full overflow-x-auto pb-2 scrollbar-hide">
+    <div className="w-full overflow-x-auto overflow-y-hidden pb-2 scroll-smooth chapter-bar-scroll">
       <div className="flex gap-2 min-w-max px-4">
         <button
           onClick={() => onChapterSelect(null)}
@@ -77,12 +77,23 @@ export default function ChapterBar({
         })}
       </div>
       <style jsx>{`
-        .scrollbar-hide {
-          -ms-overflow-style: none;
-          scrollbar-width: none;
+        .chapter-bar-scroll {
+          scroll-behavior: smooth;
+          scrollbar-width: thin;
+          scrollbar-color: rgba(212, 175, 55, 0.5) transparent;
         }
-        .scrollbar-hide::-webkit-scrollbar {
-          display: none;
+        .chapter-bar-scroll::-webkit-scrollbar {
+          height: 6px;
+        }
+        .chapter-bar-scroll::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .chapter-bar-scroll::-webkit-scrollbar-thumb {
+          background: rgba(212, 175, 55, 0.5);
+          border-radius: 3px;
+        }
+        .chapter-bar-scroll::-webkit-scrollbar-thumb:hover {
+          background: rgba(212, 175, 55, 0.7);
         }
       `}</style>
     </div>

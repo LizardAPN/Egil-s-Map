@@ -164,8 +164,8 @@ export default function ProfilePage() {
         </div>
 
         {/* Chapter Bar */}
-        <div className="flex items-center gap-4">
-          <div className="flex-1">
+        <div className="flex items-center gap-4 w-full min-w-0">
+          <div className="flex-1 min-w-0">
             <ChapterBar
               chapters={chapters}
               selectedChapterId={selectedChapterId}
