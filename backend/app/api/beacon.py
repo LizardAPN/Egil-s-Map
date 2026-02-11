@@ -26,6 +26,20 @@ def _parse_iso(s: str | None) -> datetime | None:
         return None
 
 
+def _reject_future(dt: datetime | None, field: str) -> None:
+    """Raise 400 if dt is in the future."""
+    if dt is None:
+        return
+    now = datetime.now(timezone.utc)
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    if dt > now:
+        raise HTTPException(
+            status_code=400,
+            detail=f"{field} cannot be in the future",
+        )
+
+
 def _tier_lat_lng(tier: BeaconTier) -> tuple[float | None, float | None]:
     if tier.location is None:
         return (None, None)
@@ -93,6 +107,9 @@ async def create_tier(
     new_is_current = data.ended_at is None or (isinstance(data.ended_at, str) and not data.ended_at.strip())
     started_dt = _parse_iso(data.started_at) if data.started_at else None
     ended_dt = _parse_iso(data.ended_at) if data.ended_at else None
+
+    _reject_future(started_dt, "started_at")
+    _reject_future(ended_dt, "ended_at")
 
     if data.insert_before_id is not None:
         # Insert before chapter X
@@ -186,8 +203,10 @@ async def update_tier(
         tier.location = None
     if data.started_at is not None:
         tier.started_at = _parse_iso(data.started_at)
+        _reject_future(tier.started_at, "started_at")
     if data.ended_at is not None:
         tier.ended_at = _parse_iso(data.ended_at)
+        _reject_future(tier.ended_at, "ended_at")
     await db.flush()
     await db.refresh(tier)
     return _tier_to_response(tier, None)

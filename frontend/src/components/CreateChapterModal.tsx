@@ -20,6 +20,18 @@ type CreateChapterModalProps = {
   existingChapters: ChapterOption[];
 };
 
+/** YYYY-MM for max attribute on month inputs (no future) */
+function thisMonth(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+/** Convert YYYY-MM to ISO string (first day of month, UTC) */
+function monthToISO(ym: string): string {
+  if (!ym) return "";
+  return new Date(ym + "-01T00:00:00Z").toISOString();
+}
+
 export default function CreateChapterModal({
   isOpen,
   onClose,
@@ -35,13 +47,23 @@ export default function CreateChapterModal({
   const [error, setError] = useState<string | null>(null);
   const [isCurrentChapter, setIsCurrentChapter] = useState(true);
   const [insertBeforeId, setInsertBeforeId] = useState<number | null>(null);
-  const [startedAt, setStartedAt] = useState("");
-  const [endedAt, setEndedAt] = useState("");
+  const [startedMonth, setStartedMonth] = useState(""); // YYYY-MM
+  const [endedMonth, setEndedMonth] = useState(""); // YYYY-MM
+
+  const maxMonth = thisMonth();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!isValidToken(token) || !title.trim()) {
       setError("Please enter a chapter title");
+      return;
+    }
+    if (!isCurrentChapter && (!startedMonth || !endedMonth)) {
+      setError(t("profile.enterPeriodForCompleted"));
+      return;
+    }
+    if (!isCurrentChapter && startedMonth && endedMonth && startedMonth > endedMonth) {
+      setError(t("profile.startBeforeEnd"));
       return;
     }
 
@@ -68,11 +90,11 @@ export default function CreateChapterModal({
       if (insertBeforeId !== null) {
         body.insert_before_id = insertBeforeId;
       }
-      if (startedAt) {
-        body.started_at = new Date(startedAt).toISOString();
+      if (startedMonth) {
+        body.started_at = monthToISO(startedMonth);
       }
-      if (!isCurrentChapter && endedAt) {
-        body.ended_at = new Date(endedAt).toISOString();
+      if (!isCurrentChapter && endedMonth) {
+        body.ended_at = monthToISO(endedMonth);
       }
       const res = await fetch(`${API_BASE}/beacon`, {
         method: "POST",
@@ -88,8 +110,8 @@ export default function CreateChapterModal({
         setLocation(null);
         setIsCurrentChapter(true);
         setInsertBeforeId(null);
-        setStartedAt("");
-        setEndedAt("");
+        setStartedMonth("");
+        setEndedMonth("");
         onCreated();
         onClose();
       } else {
@@ -176,15 +198,19 @@ export default function CreateChapterModal({
 
             <div>
               <label className="block text-sm text-gray-400 mb-2 font-special-elite">
-                {t("profile.chapterType")}
+                {t("profile.chapterPeriod")}
               </label>
-              <div className="flex gap-4">
+              <div className="flex gap-4 mb-3">
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="radio"
                     name="chapterType"
                     checked={isCurrentChapter}
-                    onChange={() => setIsCurrentChapter(true)}
+                    onChange={() => {
+                      setIsCurrentChapter(true);
+                      setEndedMonth("");
+                      setError(null);
+                    }}
                     className="accent-amber-500"
                   />
                   <span>{t("profile.currentChapter")}</span>
@@ -200,36 +226,51 @@ export default function CreateChapterModal({
                   <span>{t("profile.completedChapter")}</span>
                 </label>
               </div>
-            </div>
-
-            {!isCurrentChapter && (
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm text-gray-400 mb-2 font-special-elite">
-                    {t("profile.startDate")}
+              <div className="flex flex-wrap items-end gap-4">
+                <div className="min-w-[140px]">
+                  <label className="block text-xs text-gray-500 mb-1 font-special-elite">
+                    {isCurrentChapter ? t("profile.startedMonth") : t("profile.fromMonth")}
                   </label>
                   <input
-                    type="date"
-                    value={startedAt}
-                    onChange={(e) => setStartedAt(e.target.value)}
+                    type="month"
+                    value={startedMonth}
+                    onChange={(e) => {
+                      setStartedMonth(e.target.value);
+                      setError(null);
+                    }}
+                    max={maxMonth}
                     className="w-full px-4 py-2 bg-[#0a0a0c] border border-gray-600 focus:border-[#d4af37] font-special-elite text-gray-200 rounded"
                     disabled={loading}
                   />
                 </div>
-                <div>
-                  <label className="block text-sm text-gray-400 mb-2 font-special-elite">
-                    {t("profile.endDate")}
-                  </label>
-                  <input
-                    type="date"
-                    value={endedAt}
-                    onChange={(e) => setEndedAt(e.target.value)}
-                    className="w-full px-4 py-2 bg-[#0a0a0c] border border-gray-600 focus:border-[#d4af37] font-special-elite text-gray-200 rounded"
-                    disabled={loading}
-                  />
-                </div>
+                {!isCurrentChapter ? (
+                  <div className="min-w-[140px]">
+                    <label className="block text-xs text-gray-500 mb-1 font-special-elite">
+                      {t("profile.toMonth")}
+                    </label>
+                    <input
+                      type="month"
+                      value={endedMonth}
+                      onChange={(e) => {
+                        setEndedMonth(e.target.value);
+                        setError(null);
+                      }}
+                      max={maxMonth}
+                      min={startedMonth || undefined}
+                      className="w-full px-4 py-2 bg-[#0a0a0c] border border-gray-600 focus:border-[#d4af37] font-special-elite text-gray-200 rounded"
+                      disabled={loading}
+                    />
+                  </div>
+                ) : (
+                  <span className="text-gray-500 text-sm font-special-elite pb-2">
+                    — {t("profile.ongoing")}
+                  </span>
+                )}
               </div>
-            )}
+              <p className="text-gray-500 text-xs mt-1 font-special-elite">
+                {t("profile.periodHint")}
+              </p>
+            </div>
 
             <div>
               <label className="block text-sm text-gray-400 mb-2 font-special-elite">
@@ -277,7 +318,11 @@ export default function CreateChapterModal({
               </button>
               <button
                 type="submit"
-                disabled={loading || !title.trim()}
+                disabled={
+                  loading ||
+                  !title.trim() ||
+                  (!isCurrentChapter && (!startedMonth || !endedMonth))
+                }
                 className="flex-1 py-2 bg-[#d4af37] text-gray-900 hover:bg-[#b8860b] hover:brightness-110 font-cinzel font-medium rounded transition-colors disabled:opacity-50"
               >
                 {loading ? t("profile.creating") : t("profile.createChapter")}
