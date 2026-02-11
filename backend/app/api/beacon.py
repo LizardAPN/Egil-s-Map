@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import case, select
 from geoalchemy2 import WKTElement
 from geoalchemy2.shape import to_shape
 
@@ -78,7 +78,12 @@ async def list_my_tiers(
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
-        select(BeaconTier).where(BeaconTier.user_id == user.id).order_by(BeaconTier.order)
+        select(BeaconTier)
+        .where(BeaconTier.user_id == user.id)
+        .order_by(
+            case((BeaconTier.ended_at.is_(None), 1), else_=0),  # current (null) last
+            BeaconTier.started_at.asc().nulls_last(),
+        )
     )
     tiers = result.scalars().all()
     return [_tier_to_response(t, locale) for t in tiers]
@@ -98,7 +103,12 @@ async def create_tier(
         )
 
     result = await db.execute(
-        select(BeaconTier).where(BeaconTier.user_id == user.id).order_by(BeaconTier.order)
+        select(BeaconTier)
+        .where(BeaconTier.user_id == user.id)
+        .order_by(
+            case((BeaconTier.ended_at.is_(None), 1), else_=0),  # current (null) last
+            BeaconTier.started_at.asc().nulls_last(),
+        )
     )
     existing = list(result.scalars().all())
     now = datetime.now(timezone.utc)
@@ -236,7 +246,7 @@ async def delete_tier(
         other_result = await db.execute(
             select(BeaconTier)
             .where(BeaconTier.user_id == user.id, BeaconTier.id != tier_id)
-            .order_by(BeaconTier.order.desc())
+            .order_by(BeaconTier.started_at.desc().nulls_last())
         )
         others = other_result.scalars().all()
         if others:

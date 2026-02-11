@@ -1,7 +1,7 @@
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import case, select
 from geoalchemy2.shape import to_shape
 
 from app.core.database import get_db
@@ -32,7 +32,12 @@ async def get_beacon(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     tiers_result = await db.execute(
-        select(BeaconTier).where(BeaconTier.user_id == user.id).order_by(BeaconTier.order)
+        select(BeaconTier)
+        .where(BeaconTier.user_id == user.id)
+        .order_by(
+            case((BeaconTier.ended_at.is_(None), 1), else_=0),  # current (null) last
+            BeaconTier.started_at.asc().nulls_last(),
+        )
     )
     tiers = tiers_result.scalars().all()
     tier_responses = []

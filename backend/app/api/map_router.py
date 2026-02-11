@@ -52,11 +52,15 @@ async def get_chapters(
                 AND ST_X(p.location::geometry) BETWEEN :min_lng AND :max_lng
                 AND ST_Y(p.location::geometry) BETWEEN :min_lat AND :max_lat
                 ORDER BY p.tier_id, p.created_at
+            ),
+            combined AS (
+                SELECT tier_id, tier_title, lat, lng, is_active, started_at, ended_at FROM tier_in_bbox
+                UNION ALL
+                SELECT tfp.tier_id, tfp.tier_title, tfp.lat, tfp.lng, tfp.is_active, tfp.started_at, tfp.ended_at FROM tier_from_pins tfp
+                WHERE NOT EXISTS (SELECT 1 FROM tier_in_bbox tib WHERE tib.tier_id = tfp.tier_id)
             )
-            SELECT tier_id, tier_title, lat, lng, is_active, started_at, ended_at FROM tier_in_bbox
-            UNION ALL
-            SELECT tfp.tier_id, tfp.tier_title, tfp.lat, tfp.lng, tfp.is_active, tfp.started_at, tfp.ended_at FROM tier_from_pins tfp
-            WHERE NOT EXISTS (SELECT 1 FROM tier_in_bbox tib WHERE tib.tier_id = tfp.tier_id)
+            SELECT tier_id, tier_title, lat, lng, is_active, started_at, ended_at FROM combined
+            ORDER BY (ended_at IS NULL), started_at ASC NULLS LAST
         """),
         {
             "user_id": user.id,
