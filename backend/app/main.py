@@ -28,6 +28,25 @@ app = FastAPI(
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    """Ensure 500 errors return JSON with CORS headers."""
+    logger.exception("Unhandled exception: %s", exc)
+    origin = request.headers.get("origin", "")
+    allow_origin = origin if origin in _cors_origins else _cors_origins[0]
+    detail = "Internal server error"
+    if settings.environment == "development":
+        detail = str(exc)
+    return JSONResponse(
+        status_code=500,
+        content={"detail": detail},
+        headers={
+            "Access-Control-Allow-Origin": allow_origin,
+            "Access-Control-Allow-Credentials": "true",
+        },
+    )
+
 # Configure CORS - ensure preflight requests work properly
 # Include common dev ports (Next.js falls back when 3000 is in use)
 _cors_origins = [

@@ -175,6 +175,7 @@ function StrongholdsPage() {
         </Link>
         <nav className="flex items-center gap-4 font-cinzel uppercase">
           <Link href="/map">{t("nav.map")}</Link>
+          <Link href="/feed">{t("nav.feed")}</Link>
           <Link href="/strongholds" className="text-amber-400">
             {t("nav.strongholds")}
           </Link>

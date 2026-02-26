@@ -23,6 +23,7 @@ export default function MapView() {
         <Link href="/" className="text-xl font-bold text-amber-400 font-cinzel uppercase">Egil&apos;s Map</Link>
         <nav className="flex items-center gap-4 font-cinzel uppercase">
           <Link href="/map" className="text-amber-400">{t("nav.map")}</Link>
+          <Link href="/feed">{t("nav.feed")}</Link>
           <Link href="/strongholds">{t("nav.strongholds")}</Link>
           {status === "authenticated" ? (
             <>

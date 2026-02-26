@@ -6,6 +6,7 @@
   "nav": {
     "map": "Map",
     "strongholds": "Strongholds",
+    "feed": "Chronicle",
     "profile": "Profile",
     "addPin": "Add Pin",
     "admin": "Admin",
@@ -38,7 +39,7 @@
   },
   "pins": {
     "inspirations": "inspirations",
-    "inspire": "Inspire",
+    "inspire": "Be inspired",
     "loading": "Loading..."
   },
   "profile": {
@@ -86,5 +87,14 @@
     "private": "Private",
     "privateMoment": "Private Moment",
     "unknownContentType": "Unknown content type"
+  },
+  "feed": {
+    "title": "Chronicle of Wanderers",
+    "subtitle": "Moments from the journeys of fellow travelers. Be inspired.",
+    "empty": "No moments yet. Record your first deed and light the way.",
+    "loadingMore": "Loading more...",
+    "viewPin": "View in full",
+    "signInToInspire": "Sign in to be inspired",
+    "inspireFailed": "Could not complete. Try again or sign in."
   }
 }

@@ -9,12 +9,18 @@ export default function HomePage() {
       <p className="text-gray-400 mb-8 text-center max-w-md font-special-elite">
         An open-source digital legacy platform where life journeys are visualized as a map of light.
       </p>
-      <div className="flex gap-4">
+      <div className="flex gap-4 flex-wrap justify-center">
         <Link
           href="/map"
           className="px-6 py-3 bg-[#d4af37] text-gray-900 hover:bg-[#b8860b] hover:brightness-110 font-cinzel"
         >
           Explore the Map
+        </Link>
+        <Link
+          href="/feed"
+          className="px-6 py-3 bg-[#d4af37] text-gray-900 hover:bg-[#b8860b] hover:brightness-110 font-cinzel"
+        >
+          Chronicle
         </Link>
         <Link
           href="/login"

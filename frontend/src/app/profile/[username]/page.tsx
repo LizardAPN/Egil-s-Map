@@ -81,6 +81,7 @@ export default function PublicProfilePage() {
         </div>
         <nav className="flex items-center gap-4 font-cinzel uppercase">
           <Link href="/map">{t("nav.map")}</Link>
+          <Link href="/feed">{t("nav.feed")}</Link>
           <Link href="/strongholds">{t("nav.strongholds")}</Link>
           <LanguageSwitcher />
           {session ? (
