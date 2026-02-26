@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from geoalchemy2 import WKTElement
@@ -12,7 +12,7 @@ from app.models.pin import LegacyPin
 from app.models.inspiration import Inspiration
 from app.models.echo import EchoTrigger
 from app.services.s3 import upload_file
-from app.schemas.pin import PinResponse
+from app.schemas.pin import PinResponse, FeedItem
 
 router = APIRouter()
 
@@ -38,6 +38,42 @@ async def is_echo_locked(pin: LegacyPin, db: AsyncSession, viewer_lat: float | N
             return True
     # TODO: unlock_radius check with viewer location
     return False
+
+
+@router.get("/feed", response_model=list[FeedItem])
+async def get_feed(
+    offset: int = Query(0, ge=0),
+    limit: int = Query(24, ge=1, le=48),
+    db: AsyncSession = Depends(get_db),
+):
+    """Public bulletin board feed: all public pins from all users."""
+    result = await db.execute(
+        select(LegacyPin, User.username, func.count(Inspiration.id).label("insp_count"))
+        .join(User, User.id == LegacyPin.user_id)
+        .outerjoin(Inspiration, Inspiration.to_pin_id == LegacyPin.id)
+        .where(LegacyPin.is_private == False)
+        .group_by(LegacyPin.id, User.username)
+        .order_by(LegacyPin.created_at.desc())
+        .offset(offset)
+        .limit(limit)
+    )
+    rows = result.all()
+    items = []
+    for pin, username, insp_count in rows:
+        locked = await is_echo_locked(pin, db)
+        content_url = pin.content_url if not locked else None
+        items.append(
+            FeedItem(
+                id=pin.id,
+                content_type=pin.content_type,
+                content_url=content_url,
+                text_content=pin.text_content,
+                inspiration_count=insp_count or 0,
+                username=username,
+                created_at=pin.created_at.isoformat() if pin.created_at else "",
+            )
+        )
+    return items
 
 
 @router.post("", response_model=PinResponse)
@@ -151,9 +187,12 @@ async def inspire_pin(
     ttl_seconds = int((tomorrow_start - now).total_seconds())
     date_str = today_start.strftime("%Y-%m-%d")
     
-    # Try Redis first
-    daily_count = await get_daily_inspiration_count(user.id, date_str)
-    
+    # Try Redis first (may fail if Redis is down)
+    try:
+        daily_count = await get_daily_inspiration_count(user.id, date_str)
+    except Exception:
+        daily_count = None
+
     # Fallback to DB if Redis miss
     if daily_count is None:
         count_result = await db.execute(
@@ -185,24 +224,18 @@ async def inspire_pin(
         raise HTTPException(status_code=400, detail="Already inspired")
     insp = Inspiration(from_user_id=user.id, to_pin_id=pin_id)
     db.add(insp)
-    
-    # Update Redis cache for daily count
-    await increment_daily_inspiration_count(user.id, date_str, ttl_seconds)
-    
-    owner_result = await db.execute(select(User).where(User.id == pin.user_id))
-    owner = owner_result.scalar_one()
-    owner.total_inspiration_score = (owner.total_inspiration_score or 0) + 1
+    await db.flush()
 
-    # Star logic: top 1% (mock: top 10 users) get current_is_star
-    from sqlalchemy import func, update
-    count_result = await db.execute(select(func.count(User.id)))
-    total_users = count_result.scalar() or 1
-    top_n = max(1, min(10, int(total_users * 0.01) + 1))
-    top_result = await db.execute(
-        select(User.id).order_by(User.total_inspiration_score.desc()).limit(top_n)
-    )
-    top_ids = [r[0] for r in top_result.fetchall()]
-    if top_ids:
-        await db.execute(update(User).where(User.id.in_(top_ids)).values(current_is_star=True))
-        await db.execute(update(User).where(User.id.notin_(top_ids)).values(current_is_star=False))
+    # Update Redis cache for daily count (non-blocking)
+    try:
+        await increment_daily_inspiration_count(user.id, date_str, ttl_seconds)
+    except Exception:
+        pass
+
+    # Update owner inspiration score
+    owner_result = await db.execute(select(User).where(User.id == pin.user_id))
+    owner = owner_result.scalar_one_or_none()
+    if owner:
+        owner.total_inspiration_score = (owner.total_inspiration_score or 0) + 1
+
     return {"status": "inspired"}

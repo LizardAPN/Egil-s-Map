@@ -136,6 +136,7 @@ export default function ProfilePage() {
         </Link>
         <nav className="flex gap-4 font-cinzel uppercase items-center">
           <Link href="/map">{t("nav.map")}</Link>
+          <Link href="/feed">{t("nav.feed")}</Link>
           <Link href="/strongholds">{t("nav.strongholds")}</Link>
           <LanguageSwitcher />
           <button

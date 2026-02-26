@@ -35,7 +35,7 @@ export default function CitadelPage() {
   const params = useParams();
   const id = params.id as string;
   const { data: session } = useSession();
-  const { i18n } = useTranslation();
+  const { i18n, t } = useTranslation("common");
   const locale: Locale = isValidLocale(i18n.language) ? i18n.language : "en";
   const token = (session as { accessToken?: string })?.accessToken;
 
@@ -302,6 +302,7 @@ export default function CitadelPage() {
         </div>
         <nav className="flex items-center gap-4 font-cinzel uppercase">
           <Link href="/map">Map</Link>
+          <Link href="/feed">{t("nav.feed")}</Link>
           <Link href="/strongholds" className="text-amber-400">
             Strongholds
           </Link>

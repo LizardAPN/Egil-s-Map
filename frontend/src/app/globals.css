@@ -465,3 +465,161 @@ button.hover-gold:hover {
   height: 2px;
   background: #121214;
 }
+
+/* ===== Feed: Medieval Bulletin Board ===== */
+
+.feed-bulletin-bg {
+  background-color: #1a1510;
+  background-image:
+    linear-gradient(rgba(0, 0, 0, 0.4) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.4) 1px, transparent 1px);
+  background-size: 40px 40px;
+  background-position: 0 0, 0 0;
+  min-height: 100vh;
+}
+
+.feed-bulletin-bg::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='boardGrain'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23boardGrain)' opacity='0.12'/%3E%3C/svg%3E");
+  opacity: 0.5;
+  mix-blend-mode: overlay;
+}
+
+.feed-container {
+  position: relative;
+  z-index: 1;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 1rem 3rem;
+}
+
+.feed-title {
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.6);
+}
+
+.feed-subtitle {
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+/* Pinterest-style masonry for feed */
+.feed-masonry {
+  column-count: 1;
+  column-gap: 1.5rem;
+}
+
+@media (min-width: 640px) {
+  .feed-masonry {
+    column-count: 2;
+  }
+}
+
+@media (min-width: 1024px) {
+  .feed-masonry {
+    column-count: 3;
+  }
+}
+
+@media (min-width: 1280px) {
+  .feed-masonry {
+    column-count: 4;
+  }
+}
+
+/* Feed card: parchment pinned to board */
+.feed-card {
+  break-inside: avoid;
+  margin-bottom: 1.5rem;
+  display: inline-block;
+  width: 100%;
+  cursor: pointer;
+}
+
+.feed-card-parchment {
+  position: relative;
+  background: linear-gradient(180deg, #f5e6d3 0%, #e8d4b8 50%, #dfc9a8 100%);
+  border: 1px solid #8b7355;
+  box-shadow:
+    2px 2px 8px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  padding: 1rem 1.25rem;
+  transform: rotate(0deg);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.feed-card:hover .feed-card-parchment {
+  transform: rotate(-0.3deg) translateY(-2px);
+  box-shadow:
+    4px 6px 16px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+/* Thumbtack / pin decoration */
+.feed-card-pin {
+  position: absolute;
+  top: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 14px;
+  height: 14px;
+  background: radial-gradient(circle at 30% 30%, #c9a227, #8b6914);
+  border-radius: 50%;
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+.feed-card-quote {
+  padding: 0.5rem 0;
+}
+
+.feed-card-quote p {
+  font-style: italic;
+}
+
+.feed-card-note {
+  padding: 0.25rem 0;
+}
+
+.feed-card-media {
+  margin: 0 -0.5rem 0.5rem;
+  overflow: hidden;
+  border: 1px solid rgba(139, 115, 85, 0.4);
+}
+
+.feed-card-media img,
+.feed-card-media video {
+  filter: sepia(0.15);
+}
+
+.feed-card-unknown {
+  min-height: 60px;
+}
+
+.feed-card-footer {
+  margin-top: 0.75rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid rgba(139, 115, 85, 0.3);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.5rem;
+}
+
+.feed-card-author {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.feed-card-meta {
+  font-size: 0.75rem;
+  color: #6b5344;
+  font-family: 'Special Elite', monospace;
+}
+
+.feed-card-inspirations {
+  color: #8b6914;
+}

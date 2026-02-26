@@ -27,3 +27,14 @@ class PinResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class FeedItem(BaseModel):
+    """Pin with author info for the bulletin board feed."""
+    id: int
+    content_type: str
+    content_url: Optional[str] = None
+    text_content: Optional[str] = None
+    inspiration_count: int = 0
+    username: str
+    created_at: str
