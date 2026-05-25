@@ -1,0 +1,18 @@
+---
+description: Map UX, clustering, and camera behavior
+globs: "apps/**/map*.tsx,apps/**/discover.tsx,apps/**/live.tsx,apps/**/create-pin.tsx,packages/**/*map*"
+alwaysApply: false
+---
+
+# Map interactions
+
+- Long press → create memory pin at location
+- Tap cluster → zoom in + expand
+- Single pin tap → bottom sheet preview; swipe up → full story
+- Camera: `flyTo` with **800ms** duration
+- `expo-haptics` on map interactions (mobile)
+
+## Performance
+
+- Cluster pins when zoom < 12
+- Cache map tiles offline for last 5 viewed areas

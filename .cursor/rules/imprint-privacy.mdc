@@ -1,0 +1,12 @@
+---
+description: Imprint privacy and location safety (always enforce)
+alwaysApply: true
+---
+
+# Privacy (CRITICAL)
+
+- Live location: opt-in per session; never stored permanently
+- Memory pins default to `private`
+- `friends` visibility: never show exact coordinates — fuzzy offset ±500m
+- Users can delete their data immediately
+- RLS on every Supabase table in exposed schemas
