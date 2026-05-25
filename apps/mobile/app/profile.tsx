@@ -6,13 +6,15 @@ import {
   useChapterCoverCandidates,
   useCurrentUserChapters,
   useCurrentUserProfile,
+  useUserChapters,
+  useUserProfile,
   type CoverCandidate
 } from "@imprint/api/chapters";
 import * as ImagePicker from "expo-image-picker";
 import { Image } from "expo-image";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Animated,
@@ -432,9 +434,19 @@ function ChapterCreateSheet({
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
+  const params = useLocalSearchParams<{ userId?: string }>();
   const [showCreateSheet, setShowCreateSheet] = useState(false);
-  const profileQuery = useCurrentUserProfile();
-  const chaptersQuery = useCurrentUserChapters();
+  const viewedUserId = useMemo(
+    () => (typeof params.userId === "string" ? params.userId : ""),
+    [params.userId]
+  );
+  const isOwnProfile = viewedUserId.length === 0;
+  const ownProfileQuery = useCurrentUserProfile(isOwnProfile);
+  const ownChaptersQuery = useCurrentUserChapters(isOwnProfile);
+  const otherProfileQuery = useUserProfile(viewedUserId, !isOwnProfile);
+  const otherChaptersQuery = useUserChapters(viewedUserId, !isOwnProfile);
+  const profileQuery = isOwnProfile ? ownProfileQuery : otherProfileQuery;
+  const chaptersQuery = isOwnProfile ? ownChaptersQuery : otherChaptersQuery;
 
   return (
     <View className="flex-1 bg-stone-950">
@@ -470,7 +482,7 @@ export default function ProfileScreen() {
                   <Text className="text-2xl font-semibold text-white">
                     {profileQuery.data.displayName}
                   </Text>
-                  <Text className="mt-1 text-sm text-stone-400">
+              <Text className="mt-1 text-sm text-stone-400">
                     @{profileQuery.data.username}
                   </Text>
                 </View>
@@ -485,20 +497,24 @@ export default function ProfileScreen() {
         <View className="mt-8">
           <View className="mb-4 flex-row items-center justify-between px-5">
             <View>
-              <Text className="text-xl font-semibold text-white">My chapters</Text>
+              <Text className="text-xl font-semibold text-white">
+                {isOwnProfile ? "My chapters" : `${profileQuery.data?.displayName ?? "Their"} chapters`}
+              </Text>
               <Text className="mt-1 text-sm text-stone-400">
                 Narrative arcs instead of loose posts.
               </Text>
             </View>
-            <Pressable
-              accessibilityRole="button"
-              className="rounded-full bg-sky-400 px-4 py-3"
-              onPress={() => {
-                setShowCreateSheet(true);
-              }}
-            >
-              <Text className="text-sm font-semibold text-stone-950">New chapter</Text>
-            </Pressable>
+            {isOwnProfile ? (
+              <Pressable
+                accessibilityRole="button"
+                className="rounded-full bg-sky-400 px-4 py-3"
+                onPress={() => {
+                  setShowCreateSheet(true);
+                }}
+              >
+                <Text className="text-sm font-semibold text-stone-950">New chapter</Text>
+              </Pressable>
+            ) : null}
           </View>
 
           {chaptersQuery.isLoading ? (
@@ -547,9 +563,13 @@ export default function ProfileScreen() {
           ) : (
             <View className="px-5">
               <View className="rounded-[32px] border border-white/10 bg-white/5 px-5 py-8">
-                <Text className="text-lg font-semibold text-white">No chapters yet</Text>
+                <Text className="text-lg font-semibold text-white">
+                  {isOwnProfile ? "No chapters yet" : "No public chapters yet"}
+                </Text>
                 <Text className="mt-2 text-sm leading-6 text-stone-300">
-                  Start with a chapter to group memories into something people can explore.
+                  {isOwnProfile
+                    ? "Start with a chapter to group memories into something people can explore."
+                    : "This explorer has not shared a public chapter yet."}
                 </Text>
               </View>
             </View>
@@ -557,12 +577,14 @@ export default function ProfileScreen() {
         </View>
       </ScrollView>
 
-      <ChapterCreateSheet
-        onClose={() => {
-          setShowCreateSheet(false);
-        }}
-        visible={showCreateSheet}
-      />
+      {isOwnProfile ? (
+        <ChapterCreateSheet
+          onClose={() => {
+            setShowCreateSheet(false);
+          }}
+          visible={showCreateSheet}
+        />
+      ) : null}
     </View>
   );
 }
