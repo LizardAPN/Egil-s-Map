@@ -751,26 +751,25 @@ export default function LiveMapScreen() {
           </Pressable>
 
           <View className="rounded-full border border-white/10 bg-stone-950/92 p-1">
-            {(["friends", "community"] satisfies Array<Exclude<SharingMode, "hidden">>).map(
-              (mode) => (
+            {(["friends", "community"] satisfies Array<AudienceMode>).map((mode) => (
                 <Pressable
                   accessibilityRole="button"
                   className={`rounded-full px-4 py-3 ${
-                    sharingMode === mode ? "bg-white/10" : ""
+                    sharingMode === mode ||
+                    (sharingMode === "hidden" && audiencePreference === mode)
+                      ? "bg-white/10"
+                      : ""
                   }`}
                   key={mode}
-                  onPress={async () => {
-                    setSharingMode(mode);
-                    await setStoredSharingMode(mode);
-                    await Haptics.selectionAsync();
+                  onPress={() => {
+                    void handleAudiencePreferencePress(mode);
                   }}
                 >
                   <Text className="text-xs font-medium uppercase tracking-[1.4px] text-stone-200">
                     {mode}
                   </Text>
                 </Pressable>
-              )
-            )}
+              ))}
           </View>
         </View>
       </View>
