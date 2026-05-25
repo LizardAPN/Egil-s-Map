@@ -6,6 +6,13 @@
     "plugins": [
       "expo-router",
       [
+        "expo-image-picker",
+        {
+          "photosPermission": "Imprint needs access to your photos so you can attach memories.",
+          "cameraPermission": "Imprint needs camera access so you can capture memories."
+        }
+      ],
+      [
         "expo-location",
         {
           "locationWhenInUsePermission": "Imprint uses your location to center the Memory Map and pin your memories."

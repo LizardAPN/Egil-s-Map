@@ -143,6 +143,14 @@ function parseLocationFromUnknown(location: unknown) {
   }
 
   if (typeof location === "string") {
+    const wktMatch = location.match(/POINT\((-?\d+(\.\d+)?) (-?\d+(\.\d+)?)\)/);
+    if (wktMatch) {
+      return {
+        latitude: Number(wktMatch[3]),
+        longitude: Number(wktMatch[1])
+      } satisfies Coordinates;
+    }
+
     try {
       const parsed = JSON.parse(location) as unknown;
       return parseLocationFromUnknown(parsed);
@@ -262,7 +270,7 @@ async function fetchPinsViaFallbackQuery(client: SupabaseClient, userId: string,
   const { data, error } = await client
     .from("memory_pins")
     .select(
-      "id,user_id,title,body,media_urls,chapter_id,visibility,pinned_at,created_at,updated_at,latitude,longitude,location,chapter:chapters(id,title,color)"
+      "id,user_id,title,body,media_urls,chapter_id,visibility,pinned_at,created_at,updated_at,location,chapter:chapters(id,title,color)"
     )
     .eq("user_id", userId)
     .order("pinned_at", { ascending: false })
@@ -302,7 +310,7 @@ async function fetchMemoryPinDetail(pinId: string) {
   const { data, error } = await client
     .from("memory_pins")
     .select(
-      "id,user_id,title,body,media_urls,chapter_id,visibility,pinned_at,created_at,updated_at,latitude,longitude,location,chapters(id,title,color)"
+      "id,user_id,title,body,media_urls,chapter_id,visibility,pinned_at,created_at,updated_at,location,chapters(id,title,color)"
     )
     .eq("id", pinId)
     .limit(1)

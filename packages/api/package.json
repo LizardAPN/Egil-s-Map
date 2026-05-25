@@ -7,7 +7,8 @@
   "types": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
-    "./mobile": "./src/mobile.ts"
+    "./mobile": "./src/mobile.ts",
+    "./pins": "./src/pins.ts"
   },
   "scripts": {
     "build": "tsc --project tsconfig.json",

@@ -8,6 +8,7 @@ import {
   useMemoryPinsInBounds,
   type Bounds
 } from "@imprint/api/mobile";
+import { boundsContainCoordinates } from "@imprint/api/pins";
 import type { Coordinates } from "@imprint/types";
 import * as Location from "expo-location";
 import { router } from "expo-router";
@@ -196,7 +197,13 @@ export default function MemoryMapScreen() {
   const cameraRef = useRef<Mapbox.Camera>(null);
   const shapeSourceRef = useRef<Mapbox.ShapeSource>(null);
   const netInfo = useNetInfo();
-  const { selectedPinId, setSelectedPinId } = useMemoryMapStore();
+  const {
+    selectedPinId,
+    optimisticPins,
+    focusTarget,
+    setSelectedPinId,
+    clearFocusTarget
+  } = useMemoryMapStore();
   const [initialViewport, setInitialViewport] =
     useState<InitialViewportState>(DEFAULT_VIEWPORT);
   const [bounds, setBounds] = useState<Bounds | null>(null);
@@ -260,19 +267,53 @@ export default function MemoryMapScreen() {
     enabled: normalizedBounds !== null && isMapReady
   });
   const pinDetailQuery = useMemoryPinDetail(selectedPinId);
+  const visibleOptimisticPins = useMemo(
+    () =>
+      optimisticPins.filter((pin) =>
+        boundsContainCoordinates(normalizedBounds, pin.location)
+      ),
+    [normalizedBounds, optimisticPins]
+  );
+  const mergedPins = useMemo(() => {
+    const deduped = new Map<string, MemoryPinMapItem>();
+    for (const pin of pinsQuery.data ?? []) {
+      deduped.set(pin.id, pin);
+    }
+    for (const pin of visibleOptimisticPins) {
+      deduped.set(pin.id, pin);
+    }
+    return Array.from(deduped.values());
+  }, [pinsQuery.data, visibleOptimisticPins]);
+  const fallbackSelectedPin = useMemo(
+    () => mergedPins.find((pin) => pin.id === selectedPinId) ?? null,
+    [mergedPins, selectedPinId]
+  );
+
+  useEffect(() => {
+    if (!focusTarget || !cameraRef.current) {
+      return;
+    }
+
+    cameraRef.current.setCamera({
+      centerCoordinate: [focusTarget.coordinates.longitude, focusTarget.coordinates.latitude],
+      zoomLevel: 14,
+      animationDuration: 800
+    });
+    clearFocusTarget();
+  }, [clearFocusTarget, focusTarget]);
 
   const featureCollection = useMemo(
     () =>
       ({
         type: "FeatureCollection",
-        features: (pinsQuery.data ?? []).map((pin) => pinToFeature(pin))
+        features: mergedPins.map((pin) => pinToFeature(pin))
       }) as const,
-    [pinsQuery.data]
+    [mergedPins]
   );
 
   const showOfflineBanner =
     netInfo.isConnected === false || (pinsQuery.error ? isOfflineError(pinsQuery.error) : false);
-  const noPinsInArea = isMapReady && !pinsQuery.isLoading && (pinsQuery.data?.length ?? 0) === 0;
+  const noPinsInArea = isMapReady && !pinsQuery.isLoading && mergedPins.length === 0;
   const supabaseMissing =
     !process.env.EXPO_PUBLIC_SUPABASE_URL || !process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
   const pinDetailErrorMessage = pinDetailQuery.error
@@ -512,7 +553,7 @@ export default function MemoryMapScreen() {
         onClose={() => {
           setSelectedPinId(null);
         }}
-        pin={pinDetailQuery.data}
+        pin={pinDetailQuery.data ?? fallbackSelectedPin}
       />
     </View>
   );
