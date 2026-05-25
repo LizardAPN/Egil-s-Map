@@ -167,7 +167,11 @@ function SmallMapPreview({
 }
 
 export default function CreatePinScreen() {
-  const params = useLocalSearchParams<{ latitude?: string; longitude?: string }>();
+  const params = useLocalSearchParams<{
+    latitude?: string;
+    longitude?: string;
+    chapterId?: string;
+  }>();
   const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
   const sheetTranslateY = useRef(new Animated.Value(SHEET_TRANSLATE_Y)).current;
@@ -192,7 +196,9 @@ export default function CreatePinScreen() {
   const [visibility, setVisibility] = useState<MemoryPin["visibility"]>("private");
   const [pinnedDate, setPinnedDate] = useState(() => new Date());
   const [mediaAssets, setMediaAssets] = useState<LocalMediaAsset[]>([]);
-  const [selectedChapterId, setSelectedChapterId] = useState<string | null>(null);
+  const [selectedChapterId, setSelectedChapterId] = useState<string | null>(
+    typeof params.chapterId === "string" ? params.chapterId : null
+  );
   const [newChapterTitle, setNewChapterTitle] = useState("");
   const [isChapterDropdownOpen, setIsChapterDropdownOpen] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -252,7 +258,7 @@ export default function CreatePinScreen() {
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images", "videos"],
+      mediaTypes: ImagePicker.MediaTypeOptions.All,
       allowsMultipleSelection: canSelectMultiple,
       orderedSelection: canSelectMultiple,
       quality: 0.9,
