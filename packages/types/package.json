@@ -1,0 +1,13 @@
+{
+  "name": "@imprint/types",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.d.ts",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc --project tsconfig.json",
+    "lint": "eslint src --ext .ts",
+    "typecheck": "tsc --project tsconfig.json"
+  }
+}

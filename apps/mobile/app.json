@@ -1,0 +1,11 @@
+{
+  "expo": {
+    "name": "Imprint",
+    "slug": "imprint",
+    "scheme": "imprint",
+    "plugins": ["expo-router"],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

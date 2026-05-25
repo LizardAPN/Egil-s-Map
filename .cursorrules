@@ -1,0 +1,134 @@
+You are an expert full-stack developer working on Imprint — a geo-social platform for active, adventure-driven people: programmers, travelers, dreamers, creators.
+
+## Product Vision
+
+Imprint is a social network where:
+
+1. Users pin memories (stories + photos/video) to map locations
+2. Memories are organized into Life Chapters (narrative arcs)
+3. Friends' live locations are visible on a map (opt-in)
+4. Public memories from strangers are discoverable by location
+
+The MAP is the primary UI. Everything revolves around it.
+
+## Tech Stack
+
+- **Mobile**: React Native + Expo SDK 52, Expo Router v4
+- **Web**: Next.js 15 (App Router)
+- **Monorepo**: Turborepo + pnpm workspaces
+- **Styling**: NativeWind v4 (mobile) / Tailwind CSS v4 (web)
+- **Maps**: @rnmapbox/maps (mobile) / mapbox-gl (web)
+- **Backend**: Supabase (PostgreSQL + PostGIS + Auth + Realtime + Storage)
+- **State**: Zustand (global) + TanStack Query v5 (server state)
+- **Language**: TypeScript strict mode — NO `any` types ever
+
+## Code Standards
+
+- Functional components + hooks only, never class components
+- All map coordinates: { latitude: number; longitude: number }
+- All timestamps: ISO 8601 UTC strings
+- Geo queries ALWAYS use PostGIS ST_DWithin or ST_Distance
+- Row Level Security (RLS) on every Supabase table
+- Offline-first: optimistic updates with TanStack Query
+- FlatList/FlashList over ScrollView for any list > 10 items
+- Expo Image over React Native Image always
+- expo-haptics for tactile feedback on map interactions
+
+## Key Domain Types
+
+```typescript
+type Visibility = 'private' | 'friends' | 'public'
+
+interface MemoryPin {
+  id: string
+  userId: string
+  location: { latitude: number; longitude: number }
+  title: string
+  body?: string
+  mediaUrls: string[]
+  chapterId?: string
+  visibility: Visibility
+  pinnedAt: string
+}
+
+interface Chapter {
+  id: string
+  userId: string
+  title: string
+  description?: string
+  color: string
+  coverUrl?: string
+  startedAt?: string
+  endedAt?: string
+  pins?: MemoryPin[]
+}
+
+interface LivePresence {
+  userId: string
+  location: { latitude: number; longitude: number }
+  visibility: 'friends' | 'community' | 'hidden'
+  updatedAt: string
+}
+```
+
+## File Structure
+
+```
+apps/mobile/app/
+  (tabs)/
+    map.tsx          ← Memory Map (главный экран)
+    discover.tsx     ← Discovery Mode
+    live.tsx         ← Live Map
+    profile.tsx      ← Профиль + главы
+  pin/[id].tsx       ← Детальная страница пина
+  chapter/[id].tsx   ← Детальная страница главы
+  create-pin.tsx     ← Создание воспоминания
+
+packages/api/
+  pins.ts            ← CRUD для пинов
+  chapters.ts        ← CRUD для глав
+  presence.ts        ← Live location
+  discover.ts        ← Геозапросы для Discovery
+```
+
+## Map Interaction Patterns
+
+- Long press on map → create memory pin at that location
+- Tap pin cluster → zoom in + expand cluster
+- Single pin tap → show bottom sheet with preview
+- Swipe up on bottom sheet → full story view
+- Camera animation: always use flyTo with 800ms duration
+
+## Privacy Rules (CRITICAL)
+
+- Live location: opt-in per session, never stored permanently
+- Memory pins default to 'private'
+- Never show exact location of 'friends' mode — use fuzzy offset ±500m
+- Users can delete any of their data immediately
+
+## Performance
+
+- Cluster pins on map when zoom < 12
+- Lazy load media in lists
+- Paginate pin queries (20 per page)
+- Cache map tiles offline for last 5 viewed areas
+
+## When writing Supabase queries
+
+- Always use .select() with explicit columns, never `*`
+- Always add .limit()
+- Geo queries example:
+
+```sql
+SELECT * FROM memory_pins
+WHERE ST_DWithin(location, ST_Point($lon, $lat)::geography, $radiusMeters)
+AND visibility = 'public'
+ORDER BY pinned_at DESC
+LIMIT 20
+```
+
+## Tone & UI copy
+
+- Short, punchy English (primary language)
+- No corporate speak. Users are adventurers.
+- Error messages are human: "Couldn't save your memory. Try again?" not "Error 500"
