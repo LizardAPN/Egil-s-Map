@@ -281,8 +281,9 @@ export default function LiveMapScreen() {
 
     async function bootstrap() {
       try {
-        const [mode, permission, profile] = await Promise.all([
+        const [storedMode, storedAudience, permission, profile] = await Promise.all([
           getStoredSharingMode(),
+          getStoredAudiencePreference(),
           Location.requestForegroundPermissionsAsync(),
           supabase ? getCurrentUserProfile() : Promise.resolve(null)
         ]);
@@ -291,7 +292,15 @@ export default function LiveMapScreen() {
           return;
         }
 
-        setSharingMode(mode);
+        if (storedMode === "friends" || storedMode === "community") {
+          setAudiencePreference(storedMode);
+          setSharingMode("hidden");
+          await setStoredSharingMode("hidden");
+          await setStoredAudiencePreference(storedMode);
+        } else {
+          setSharingMode("hidden");
+          setAudiencePreference(storedAudience);
+        }
         setHasLocationPermission(permission.granted);
         setMyProfile(profile);
 
@@ -528,11 +537,28 @@ export default function LiveMapScreen() {
   const communityGlow = communityGlowColor(communityUsers.length);
 
   const handleToggleSharing = async () => {
-    const nextMode: SharingMode = sharingMode === "hidden" ? "friends" : "hidden";
+    const nextMode: SharingMode =
+      sharingMode === "hidden" ? audiencePreference : "hidden";
     setSharingMode(nextMode);
     await setStoredSharingMode(nextMode);
+    if (nextMode !== "hidden") {
+      await setStoredAudiencePreference(nextMode);
+    }
     setSelectedUser(null);
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+  };
+
+  const handleAudiencePreferencePress = async (mode: AudienceMode) => {
+    setAudiencePreference(mode);
+    await setStoredAudiencePreference(mode);
+    await Haptics.selectionAsync();
+
+    if (sharingMode === "hidden") {
+      return;
+    }
+
+    setSharingMode(mode);
+    await setStoredSharingMode(mode);
   };
 
   const handleFriendMarkerPress = (user: LiveUser) => {
