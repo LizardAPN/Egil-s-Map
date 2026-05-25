@@ -308,6 +308,25 @@ export async function getUserChapters(userId: string) {
     .filter((chapter): chapter is ChapterSummary => chapter !== null);
 }
 
+export async function getPublicUserChapters(userId: string) {
+  const client = getSupabaseClient();
+  const { data, error } = await client
+    .from("chapters")
+    .select(
+      "id,user_id,title,description,color,cover_url,started_at,ended_at,created_at,updated_at,memory_pins(id)"
+    )
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    throw error;
+  }
+
+  return (data ?? [])
+    .map((row) => createChapterFromRow(row as ChapterRow))
+    .filter((chapter): chapter is ChapterSummary => chapter !== null);
+}
+
 export async function getChapterWithPins(chapterId: string) {
   const client = getSupabaseClient();
   const { data: chapterData, error: chapterError } = await client
@@ -468,6 +487,53 @@ export async function getCurrentUserProfile() {
   } satisfies UserProfile;
 }
 
+export async function getUserProfile(userId: string) {
+  const client = getSupabaseClient();
+  const [{ data: authData }, { data: profileData, error: profileError }, chapters] =
+    await Promise.all([
+      client.auth.getUser(),
+      client
+        .from("profiles")
+        .select("id,username,display_name,avatar_url,bio,created_at")
+        .eq("id", userId)
+        .limit(1)
+        .maybeSingle(),
+      getPublicUserChapters(userId)
+    ]);
+
+  if (profileError && profileError.code !== "PGRST116") {
+    throw profileError;
+  }
+
+  const currentUser = authData.user;
+  const row = profileData as ProfileRow | null;
+  const username =
+    asString(row?.username) ??
+    (currentUser?.id === userId ? currentUser.email?.split("@")[0] : null) ??
+    "imprint";
+  const displayName =
+    asString(row?.display_name) ??
+    (currentUser?.id === userId
+      ? ((currentUser.user_metadata.full_name as string | undefined) ??
+        (currentUser.user_metadata.name as string | undefined))
+      : null) ??
+    username;
+
+  return {
+    id: userId,
+    username,
+    displayName,
+    avatarUrl:
+      asString(row?.avatar_url) ??
+      (currentUser?.id === userId
+        ? (currentUser.user_metadata.avatar_url as string | undefined)
+        : undefined),
+    bio: asString(row?.bio) ?? undefined,
+    createdAt: asIsoString(asString(row?.created_at) ?? new Date().toISOString()),
+    chapterCount: chapters.length
+  } satisfies UserProfile;
+}
+
 export async function getChapterCoverCandidates(limit = 24) {
   const client = getSupabaseClient();
   const userId = await getCurrentUserId();
@@ -536,6 +602,22 @@ export function useCurrentUserChapters(enabled = true) {
       return getUserChapters(userId);
     },
     enabled
+  });
+}
+
+export function useUserProfile(userId: string, enabled = true) {
+  return useQuery({
+    queryKey: ["profile", userId],
+    queryFn: async () => getUserProfile(userId),
+    enabled: enabled && userId.length > 0
+  });
+}
+
+export function useUserChapters(userId: string, enabled = true) {
+  return useQuery({
+    queryKey: ["chapters", userId],
+    queryFn: async () => getPublicUserChapters(userId),
+    enabled: enabled && userId.length > 0
   });
 }
 
