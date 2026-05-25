@@ -1,7 +1,7 @@
 import "react-native-url-polyfill/auto";
 
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import type { Chapter, Coordinates, MemoryPin, User } from "@imprint/types";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
@@ -12,6 +12,10 @@ export interface ChapterSummary extends Chapter {
 export interface ChapterPin extends MemoryPin {
   locationName?: string;
   thumbnailUrl?: string;
+}
+
+export interface ProfileGridPin extends ChapterPin {
+  chapterColor?: string;
 }
 
 export interface ChapterWithPins extends Chapter {
@@ -38,6 +42,22 @@ export interface UpdateChapterData {
 
 export interface UserProfile extends User {
   chapterCount: number;
+}
+
+export interface UserProfileStats {
+  memories: number;
+  chapters: number;
+  followers: number;
+  following: number;
+}
+
+export interface UserProfilePageData {
+  profile: UserProfile;
+  stats: UserProfileStats;
+  chapters: ChapterSummary[];
+  pins: ProfileGridPin[];
+  isOwnProfile: boolean;
+  isFollowing: boolean;
 }
 
 export interface CoverCandidate {
@@ -242,6 +262,17 @@ function createPinFromRow(row: PinRow): ChapterPin | null {
   };
 }
 
+function createProfileGridPin(row: PinRow): ProfileGridPin | null {
+  const pin = createPinFromRow(row);
+  if (!pin) {
+    return null;
+  }
+
+  return {
+    ...pin
+  };
+}
+
 async function getCurrentUserId() {
   const client = getSupabaseClient();
   const { data, error } = await client.auth.getUser();
@@ -325,6 +356,116 @@ export async function getPublicUserChapters(userId: string) {
   return (data ?? [])
     .map((row) => createChapterFromRow(row as ChapterRow))
     .filter((chapter): chapter is ChapterSummary => chapter !== null);
+}
+
+async function getRawProfileRowByUsername(username: string) {
+  const client = getSupabaseClient();
+  const { data, error } = await client
+    .from("profiles")
+    .select("id,username,display_name,avatar_url,bio,created_at")
+    .eq("username", username)
+    .limit(1)
+    .maybeSingle();
+
+  if (error && error.code !== "PGRST116") {
+    throw error;
+  }
+
+  return (data as ProfileRow | null) ?? null;
+}
+
+async function getFollowCounts(userId: string) {
+  const client = getSupabaseClient();
+  const [{ data: followers, error: followersError }, { data: following, error: followingError }] =
+    await Promise.all([
+      client.from("follows").select("follower_id").eq("following_id", userId),
+      client.from("follows").select("following_id").eq("follower_id", userId)
+    ]);
+
+  if (followersError) {
+    throw followersError;
+  }
+
+  if (followingError) {
+    throw followingError;
+  }
+
+  return {
+    followers: (followers ?? []).length,
+    following: (following ?? []).length
+  };
+}
+
+async function getPinnedMemoriesForProfile(userId: string, isOwnProfile: boolean) {
+  const client = getSupabaseClient();
+  let query = client
+    .from("memory_pins")
+    .select(
+      "id,user_id,title,body,media_urls,chapter_id,visibility,pinned_at,created_at,updated_at,location"
+    )
+    .eq("user_id", userId)
+    .order("pinned_at", { ascending: false })
+    .limit(120);
+
+  if (!isOwnProfile) {
+    query = query.eq("visibility", "public");
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    throw error;
+  }
+
+  return (data ?? [])
+    .map((row) => createProfileGridPin(row as PinRow))
+    .filter((pin): pin is ProfileGridPin => pin !== null);
+}
+
+async function getMemoryCountForProfile(userId: string, isOwnProfile: boolean) {
+  const client = getSupabaseClient();
+  let query = client
+    .from("memory_pins")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId);
+
+  if (!isOwnProfile) {
+    query = query.eq("visibility", "public");
+  }
+
+  const { count, error } = await query;
+  if (error) {
+    throw error;
+  }
+
+  return count ?? 0;
+}
+
+async function getFollowState(viewerId: string | null, profileUserId: string) {
+  if (!viewerId || viewerId === profileUserId) {
+    return {
+      isOwnProfile: viewerId === profileUserId,
+      isFollowing: false
+    };
+  }
+
+  const client = getSupabaseClient();
+  const { data, error } = await client
+    .from("follows")
+    .select("follower_id")
+    .eq("follower_id", viewerId)
+    .eq("following_id", profileUserId)
+    .limit(1)
+    .maybeSingle();
+
+  if (error && error.code !== "PGRST116") {
+    throw error;
+  }
+
+  return {
+    isOwnProfile: false,
+    isFollowing: data !== null
+  };
 }
 
 export async function getChapterWithPins(chapterId: string) {
@@ -534,6 +675,60 @@ export async function getUserProfile(userId: string) {
   } satisfies UserProfile;
 }
 
+export async function getUserProfileByUsername(username: string) {
+  const client = getSupabaseClient();
+  const [{ data: authData, error: authError }, profileRow] = await Promise.all([
+    client.auth.getUser(),
+    getRawProfileRowByUsername(username)
+  ]);
+
+  if (authError) {
+    throw authError;
+  }
+
+  if (!profileRow) {
+    throw new Error("Profile not found.");
+  }
+
+  const viewerId = authData.user?.id ?? null;
+  const profileUserId = asString(profileRow.id);
+  if (!profileUserId) {
+    throw new Error("Profile is missing an id.");
+  }
+
+  const [{ followers, following }, followState, chapters, pins, memoryCount] = await Promise.all([
+    getFollowCounts(profileUserId),
+    getFollowState(viewerId, profileUserId),
+    viewerId === profileUserId ? getUserChapters(profileUserId) : getPublicUserChapters(profileUserId),
+    getPinnedMemoriesForProfile(profileUserId, viewerId === profileUserId),
+    getMemoryCountForProfile(profileUserId, viewerId === profileUserId)
+  ]);
+
+  const profile = {
+    id: profileUserId,
+    username: asString(profileRow.username) ?? username,
+    displayName: asString(profileRow.display_name) ?? username,
+    avatarUrl: asString(profileRow.avatar_url) ?? undefined,
+    bio: asString(profileRow.bio) ?? undefined,
+    createdAt: asIsoString(profileRow.created_at),
+    chapterCount: chapters.length
+  } satisfies UserProfile;
+
+  return {
+    profile,
+    stats: {
+      memories: memoryCount,
+      chapters: chapters.length,
+      followers,
+      following
+    },
+    chapters,
+    pins,
+    isOwnProfile: followState.isOwnProfile,
+    isFollowing: followState.isFollowing
+  } satisfies UserProfilePageData;
+}
+
 export async function getChapterCoverCandidates(limit = 24) {
   const client = getSupabaseClient();
   const userId = await getCurrentUserId();
@@ -586,6 +781,39 @@ export async function createChapterWithCover(
   });
 }
 
+export async function followUserById(targetUserId: string) {
+  const client = getSupabaseClient();
+  const viewerId = await getCurrentUserId();
+  if (viewerId === targetUserId) {
+    throw new Error("You cannot follow yourself.");
+  }
+
+  const { error } = await client
+    .from("follows")
+    .insert({
+      follower_id: viewerId,
+      following_id: targetUserId
+    });
+
+  if (error) {
+    throw error;
+  }
+}
+
+export async function unfollowUserById(targetUserId: string) {
+  const client = getSupabaseClient();
+  const viewerId = await getCurrentUserId();
+  const { error } = await client
+    .from("follows")
+    .delete()
+    .eq("follower_id", viewerId)
+    .eq("following_id", targetUserId);
+
+  if (error) {
+    throw error;
+  }
+}
+
 export function useCurrentUserProfile(enabled = true) {
   return useQuery({
     queryKey: ["profile", "me"],
@@ -602,6 +830,14 @@ export function useCurrentUserChapters(enabled = true) {
       return getUserChapters(userId);
     },
     enabled
+  });
+}
+
+export function useProfilePageByUsername(username: string, enabled = true) {
+  return useQuery({
+    queryKey: ["profile-page", username],
+    queryFn: async () => getUserProfileByUsername(username),
+    enabled: enabled && username.length > 0
   });
 }
 
@@ -634,5 +870,17 @@ export function useChapterCoverCandidates(enabled = true) {
     queryKey: ["chapters", "cover-candidates"],
     queryFn: async () => getChapterCoverCandidates(),
     enabled
+  });
+}
+
+export function useFollowUser() {
+  return useMutation({
+    mutationFn: followUserById
+  });
+}
+
+export function useUnfollowUser() {
+  return useMutation({
+    mutationFn: unfollowUserById
   });
 }
