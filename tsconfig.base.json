@@ -18,13 +18,22 @@
     "baseUrl": ".",
     "paths": {
       "@imprint/types": [
-        "packages/types/src"
+        "packages/types/src/index.ts"
+      ],
+      "@imprint/types/*": [
+        "packages/types/src/*"
       ],
       "@imprint/api": [
-        "packages/api/src"
+        "packages/api/src/index.ts"
+      ],
+      "@imprint/api/*": [
+        "packages/api/src/*"
       ],
       "@imprint/ui": [
-        "packages/ui/src"
+        "packages/ui/src/index.ts"
+      ],
+      "@imprint/ui/*": [
+        "packages/ui/src/*"
       ]
     }
   }

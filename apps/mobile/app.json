@@ -3,7 +3,15 @@
     "name": "Imprint",
     "slug": "imprint",
     "scheme": "imprint",
-    "plugins": ["expo-router"],
+    "plugins": [
+      "expo-router",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Imprint uses your location to center the Memory Map and pin your memories."
+        }
+      ]
+    ],
     "experiments": {
       "typedRoutes": true
     }

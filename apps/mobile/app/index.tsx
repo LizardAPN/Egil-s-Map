@@ -1,9 +1,5 @@
-import { Text, View } from "react-native";
+import { Redirect } from "expo-router";
 
-export default function HomeScreen() {
-  return (
-    <View className="flex-1 items-center justify-center bg-stone-950">
-      <Text className="text-lg font-semibold text-white">Imprint</Text>
-    </View>
-  );
+export default function IndexScreen() {
+  return <Redirect href="/(tabs)/map" />;
 }
