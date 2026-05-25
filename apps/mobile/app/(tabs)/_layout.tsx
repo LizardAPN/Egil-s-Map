@@ -11,6 +11,7 @@ export default function TabsLayout() {
       }}
     >
       <Tabs.Screen name="map" options={{ title: "Map" }} />
+      <Tabs.Screen name="discover" options={{ title: "Discover" }} />
       <Tabs.Screen name="live" options={{ title: "Live" }} />
     </Tabs>
   );
