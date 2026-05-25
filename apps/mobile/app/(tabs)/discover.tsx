@@ -270,10 +270,7 @@ function PinPreviewCard({
             accessibilityRole="button"
             className="flex-1 flex-row items-center gap-3"
             onPress={() => {
-              router.push({
-                pathname: "/profile",
-                params: { userId: pin.author.id }
-              });
+              router.push(`/profile/${pin.author.username}`);
             }}
           >
             {pin.author.avatarUrl ? (
