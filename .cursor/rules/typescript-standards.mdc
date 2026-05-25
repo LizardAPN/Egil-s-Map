@@ -1,0 +1,19 @@
+---
+description: TypeScript and React conventions for Imprint
+globs: "**/*.{ts,tsx}"
+alwaysApply: false
+---
+
+# TypeScript & React
+
+- Functional components + hooks only; no class components
+- Strict types; never use `any`
+- Coordinates: `{ latitude: number; longitude: number }`
+- Timestamps: ISO 8601 UTC strings
+- Offline-first: optimistic updates with TanStack Query
+
+## Lists & media (mobile)
+
+- FlatList/FlashList for lists > 10 items (not ScrollView)
+- `expo-image` over React Native `Image`
+- Lazy-load media in lists; paginate API results (20 per page)

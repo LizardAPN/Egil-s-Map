@@ -1,0 +1,23 @@
+---
+description: Expo and React Native patterns for apps/mobile
+globs: "apps/mobile/**"
+alwaysApply: false
+---
+
+# Mobile (Expo)
+
+- Expo Router v4 file-based routes under `apps/mobile/app/`
+- NativeWind v4 for styling
+- @rnmapbox/maps for the map layer
+- Prefer shared types from monorepo packages; keep screen files thin
+
+## Screens
+
+| Route | Role |
+|-------|------|
+| `(tabs)/map` | Memory map (main) |
+| `(tabs)/discover` | Discovery mode |
+| `(tabs)/live` | Live map |
+| `(tabs)/profile` | Profile + chapters |
+| `create-pin` | New memory |
+| `pin/[id]`, `chapter/[id]` | Detail views |
