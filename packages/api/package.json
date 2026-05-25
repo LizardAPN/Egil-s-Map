@@ -9,7 +9,9 @@
     ".": "./src/index.ts",
     "./mobile": "./src/mobile.ts",
     "./pins": "./src/pins.ts",
-    "./chapters": "./chapters.ts"
+    "./chapters": "./chapters.ts",
+    "./discover": "./discover.ts",
+    "./echoes": "./echoes.ts"
   },
   "scripts": {
     "build": "tsc --project tsconfig.json",
