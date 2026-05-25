@@ -8,7 +8,8 @@
   "exports": {
     ".": "./src/index.ts",
     "./mobile": "./src/mobile.ts",
-    "./pins": "./src/pins.ts"
+    "./pins": "./src/pins.ts",
+    "./chapters": "./chapters.ts"
   },
   "scripts": {
     "build": "tsc --project tsconfig.json",
