@@ -220,8 +220,9 @@ export function registerEchoNotificationResponseHandler() {
     }
 
     router.push({
-      pathname: `/pin/${data.pinId}`,
+      pathname: "/pin/[id]",
       params: {
+        id: data.pinId,
         latitude:
           typeof data.latitude === "number" ? String(data.latitude) : undefined,
         longitude:

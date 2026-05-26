@@ -18,15 +18,16 @@ import {
 } from "react-native";
 
 type SharingMode = "hidden" | "friends" | "community";
+type AudienceMode = Exclude<SharingMode, "hidden">;
 
 interface PresencePayload {
   userId: string;
   latitude: number;
   longitude: number;
   username: string;
-  avatarUrl?: string;
-  bio?: string;
-  mode: Exclude<SharingMode, "hidden">;
+  avatarUrl?: string | undefined;
+  bio?: string | undefined;
+  mode: AudienceMode;
   updatedAt: string;
 }
 
@@ -46,6 +47,7 @@ interface MutualFollowRow {
 const MAPBOX_TOKEN = process.env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN ?? "";
 const MAPBOX_DARK_STYLE = "mapbox://styles/mapbox/dark-v11";
 const LIVE_SETTINGS_STORAGE_KEY = "imprint:live-sharing-mode";
+const LIVE_AUDIENCE_STORAGE_KEY = "imprint:live-audience-mode";
 const LIVE_CHANNEL = "presence";
 const BROADCAST_TOPIC = "live-location";
 const BROADCAST_INTERVAL_MS = 30_000;
@@ -154,6 +156,19 @@ async function setStoredSharingMode(mode: SharingMode) {
   await AsyncStorage.setItem(LIVE_SETTINGS_STORAGE_KEY, mode);
 }
 
+async function getStoredAudiencePreference() {
+  const storedMode = await AsyncStorage.getItem(LIVE_AUDIENCE_STORAGE_KEY);
+  if (storedMode === "friends" || storedMode === "community") {
+    return storedMode satisfies AudienceMode;
+  }
+
+  return "friends" satisfies AudienceMode;
+}
+
+async function setStoredAudiencePreference(mode: AudienceMode) {
+  await AsyncStorage.setItem(LIVE_AUDIENCE_STORAGE_KEY, mode);
+}
+
 async function getCurrentUserProfile() {
   const supabase = createSupabaseMobileClient();
   const { data, error } = await supabase.auth.getUser();
@@ -210,7 +225,8 @@ async function getMutualFollowerIds(userId: string) {
             ? (row as MutualFollowRow).following_id
             : null
         )
-        .filter((value): value is string => value !== null && followerIds.has(value))
+        .filter((value): value is string => value !== null)
+        .filter((value) => followerIds.has(value))
     );
   } catch {
     return new Set<string>();
@@ -250,6 +266,8 @@ export default function LiveMapScreen() {
   const appStateRef = useRef<AppStateStatus>(AppState.currentState);
   const channelRef = useRef<RealtimeChannel | null>(null);
   const [sharingMode, setSharingMode] = useState<SharingMode>("hidden");
+  const [audiencePreference, setAudiencePreference] =
+    useState<AudienceMode>("friends");
   const [isFocused, setIsFocused] = useState(false);
   const [isAppActive, setIsAppActive] = useState(AppState.currentState === "active");
   const [hasLocationPermission, setHasLocationPermission] = useState<boolean | null>(null);
@@ -634,7 +652,7 @@ export default function LiveMapScreen() {
             clusterMaxZoomLevel={11}
             clusterRadius={50}
             id="community-source"
-            shape={communityFeatures}
+            shape={communityFeatures as never}
           >
             <Mapbox.HeatmapLayer
               id="community-heatmap"
