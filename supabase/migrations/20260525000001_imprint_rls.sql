@@ -1,5 +1,3 @@
-create extension if not exists postgis;
-
 create or replace function public.is_mutual_follow(requester uuid, other_user uuid)
 returns boolean
 language sql
@@ -37,72 +35,6 @@ as $$
       and public.is_mutual_follow(auth.uid(), pin_owner_id)
     );
 $$;
-
-alter table if exists public.users
-  add constraint users_id_fkey
-  foreign key (id)
-  references auth.users (id)
-  on delete cascade;
-
-alter table if exists public.chapters
-  add constraint chapters_user_id_fkey
-  foreign key (user_id)
-  references public.users (id)
-  on delete cascade;
-
-alter table if exists public.memory_pins
-  add constraint memory_pins_user_id_fkey
-  foreign key (user_id)
-  references public.users (id)
-  on delete cascade;
-
-alter table if exists public.memory_pins
-  add constraint memory_pins_chapter_id_fkey
-  foreign key (chapter_id)
-  references public.chapters (id)
-  on delete set null;
-
-alter table if exists public.live_presence
-  add constraint live_presence_user_id_fkey
-  foreign key (user_id)
-  references public.users (id)
-  on delete cascade;
-
-alter table if exists public.follows
-  add constraint follows_follower_id_fkey
-  foreign key (follower_id)
-  references public.users (id)
-  on delete cascade;
-
-alter table if exists public.follows
-  add constraint follows_following_id_fkey
-  foreign key (following_id)
-  references public.users (id)
-  on delete cascade;
-
-alter table if exists public.reactions
-  add constraint reactions_user_id_fkey
-  foreign key (user_id)
-  references public.users (id)
-  on delete cascade;
-
-alter table if exists public.reactions
-  add constraint reactions_pin_id_fkey
-  foreign key (pin_id)
-  references public.memory_pins (id)
-  on delete cascade;
-
-alter table if exists public.follows
-  add constraint follows_no_self_follow
-  check (follower_id <> following_id);
-
-alter table if exists public.follows
-  add constraint follows_unique_edge
-  unique (follower_id, following_id);
-
-alter table if exists public.reactions
-  add constraint reactions_unique_user_pin
-  unique (user_id, pin_id);
 
 create index if not exists memory_pins_location_gist_idx
   on public.memory_pins
