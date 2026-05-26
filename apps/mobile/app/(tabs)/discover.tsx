@@ -525,7 +525,9 @@ export default function DiscoverScreen() {
       }
 
       if (feature.properties.cluster === true) {
-        const expansionZoom = await shapeSourceRef.current?.getClusterExpansionZoom(feature);
+        const expansionZoom = await shapeSourceRef.current?.getClusterExpansionZoom(
+          feature as never
+        );
         const coordinates = feature.geometry?.coordinates;
         if (
           typeof expansionZoom === "number" &&
@@ -568,7 +570,7 @@ export default function DiscoverScreen() {
           onDidFinishLoadingMap={() => {
             setIsMapReady(true);
           }}
-          onMapIdle={handleMapIdle}
+          onMapIdle={handleMapIdle as never}
           pitchEnabled={false}
           rotateEnabled={false}
           scaleBarEnabled={false}
@@ -589,8 +591,8 @@ export default function DiscoverScreen() {
             cluster
             clusterMaxZoomLevel={11}
             clusterRadius={52}
-            onPress={handleShapePress}
-            shape={featureCollection}
+            onPress={handleShapePress as never}
+            shape={featureCollection as never}
           >
             <Mapbox.HeatmapLayer
               id="discover-hotspots"

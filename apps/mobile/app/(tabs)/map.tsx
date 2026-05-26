@@ -354,7 +354,9 @@ export default function MemoryMapScreen() {
       }
 
       if (feature.properties.cluster) {
-        const expansionZoom = await shapeSourceRef.current?.getClusterExpansionZoom(feature);
+        const expansionZoom = await shapeSourceRef.current?.getClusterExpansionZoom(
+          feature as never
+        );
         const coordinates = feature.geometry?.coordinates;
 
         if (
@@ -391,8 +393,8 @@ export default function MemoryMapScreen() {
           onDidFinishLoadingMap={() => {
             setIsMapReady(true);
           }}
-          onLongPress={handleLongPress}
-          onMapIdle={handleMapIdle}
+          onLongPress={handleLongPress as never}
+          onMapIdle={handleMapIdle as never}
           pitchEnabled={false}
           rotateEnabled={false}
           scaleBarEnabled={false}
@@ -420,8 +422,8 @@ export default function MemoryMapScreen() {
             cluster
             clusterMaxZoomLevel={CLUSTER_BREAKPOINT - 1}
             clusterRadius={48}
-            onPress={handleShapePress}
-            shape={featureCollection}
+            onPress={handleShapePress as never}
+            shape={featureCollection as never}
           >
             <Mapbox.CircleLayer
               id="clustered-pins"

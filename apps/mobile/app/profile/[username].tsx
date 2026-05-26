@@ -185,7 +185,7 @@ function MiniMapSnapshot({ pins }: { pins: ProfileGridPin[] }) {
             zoomLevel: 1.2
           }}
         />
-        <Mapbox.ShapeSource cluster clusterRadius={44} shape={featureCollection}>
+        <Mapbox.ShapeSource cluster clusterRadius={44} shape={featureCollection as never}>
           <Mapbox.CircleLayer
             id="snapshot-clusters"
             filter={["has", "point_count"]}
@@ -326,7 +326,7 @@ function TrailMap({ pins }: { pins: ProfileGridPin[] }) {
             zoomLevel: 1.45
           }}
         />
-        <Mapbox.ShapeSource shape={lineFeature}>
+        <Mapbox.ShapeSource shape={lineFeature as never}>
           <Mapbox.LineLayer
             id="trail-line"
             style={{
@@ -336,7 +336,7 @@ function TrailMap({ pins }: { pins: ProfileGridPin[] }) {
             }}
           />
         </Mapbox.ShapeSource>
-        <Mapbox.ShapeSource shape={pointFeatureCollection}>
+        <Mapbox.ShapeSource shape={pointFeatureCollection as never}>
           <Mapbox.CircleLayer
             id="trail-points"
             style={{
