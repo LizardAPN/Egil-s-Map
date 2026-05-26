@@ -196,12 +196,12 @@ export default function ChapterDetailScreen() {
       {MAPBOX_TOKEN ? (
         <Mapbox.MapView
           attributionEnabled={false}
-          className="flex-1"
           compassEnabled={false}
           logoEnabled={false}
           pitchEnabled={false}
           rotateEnabled={false}
           scaleBarEnabled={false}
+          style={{ flex: 1 }}
           styleURL="mapbox://styles/mapbox/dark-v11"
         >
           <Mapbox.Camera
