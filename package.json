@@ -15,6 +15,11 @@
     "format": "prettier --check .",
     "format:write": "prettier --write ."
   },
+  "pnpm": {
+    "overrides": {
+      "@rnmapbox/maps": "10.1.45"
+    }
+  },
   "devDependencies": {
     "@eslint/js": "^9.15.0",
     "@types/node": "^22.9.0",
