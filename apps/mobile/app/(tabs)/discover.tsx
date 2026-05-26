@@ -564,7 +564,6 @@ export default function DiscoverScreen() {
       {MAPBOX_TOKEN ? (
         <Mapbox.MapView
           attributionEnabled={false}
-          className="flex-1"
           compassEnabled
           logoEnabled={false}
           onDidFinishLoadingMap={() => {
@@ -574,6 +573,7 @@ export default function DiscoverScreen() {
           pitchEnabled={false}
           rotateEnabled={false}
           scaleBarEnabled={false}
+          style={{ flex: 1 }}
           styleURL={MAPBOX_DARK_STYLE}
         >
           <Mapbox.Camera
@@ -714,7 +714,7 @@ export default function DiscoverScreen() {
       ) : null}
 
       {pins.length === 0 && isMapReady && !isLoading ? (
-        <View className="absolute inset-x-0 bottom-32 items-center px-6">
+        <View className="absolute inset-x-0 bottom-40 items-center px-6">
           <View className="rounded-2xl border border-white/10 bg-stone-950/88 px-4 py-3">
             <Text className="text-center text-sm text-stone-200">
               No public memories in this area yet. Try panning wider.

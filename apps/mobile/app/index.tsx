@@ -1,6 +1,7 @@
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, Text, View } from "react-native";
+import { getAuthSession } from "../src/services/auth";
 import { getOnboardingCompleted } from "../src/services/onboarding";
 
 export default function IndexScreen() {
@@ -10,13 +11,33 @@ export default function IndexScreen() {
     let mounted = true;
 
     void (async () => {
-      const completed = await getOnboardingCompleted();
-      if (!mounted) {
-        return;
-      }
+      try {
+        const session = await getAuthSession();
+        if (!mounted) {
+          return;
+        }
 
-      router.replace(completed ? "/(tabs)/map" : "/onboarding");
-      setIsChecking(false);
+        if (!session) {
+          router.replace("/sign-in");
+          setIsChecking(false);
+          return;
+        }
+
+        const completed = await getOnboardingCompleted();
+        if (!mounted) {
+          return;
+        }
+
+        router.replace(completed ? "/(tabs)/map" : "/onboarding");
+      } catch {
+        if (mounted) {
+          router.replace("/sign-in");
+        }
+      } finally {
+        if (mounted) {
+          setIsChecking(false);
+        }
+      }
     })();
 
     return () => {

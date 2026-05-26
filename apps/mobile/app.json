@@ -6,7 +6,12 @@
     "plugins": [
       "expo-dev-client",
       "expo-router",
-      "@rnmapbox/maps",
+      [
+        "@rnmapbox/maps",
+        {
+          "RNMapboxMapsUseV11": true
+        }
+      ],
       [
         "expo-notifications",
         {

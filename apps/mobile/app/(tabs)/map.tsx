@@ -313,7 +313,8 @@ export default function MemoryMapScreen() {
 
   const showOfflineBanner =
     netInfo.isConnected === false || (pinsQuery.error ? isOfflineError(pinsQuery.error) : false);
-  const noPinsInArea = isMapReady && !pinsQuery.isLoading && mergedPins.length === 0;
+  const noPinsInArea =
+    isMapReady && !pinsQuery.isLoading && !pinsQuery.error && mergedPins.length === 0;
   const supabaseMissing =
     !process.env.EXPO_PUBLIC_SUPABASE_URL || !process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
   const pinDetailErrorMessage = pinDetailQuery.error
@@ -387,7 +388,6 @@ export default function MemoryMapScreen() {
       {MAPBOX_TOKEN ? (
         <Mapbox.MapView
           attributionEnabled={false}
-          className="flex-1"
           compassEnabled
           logoEnabled={false}
           onDidFinishLoadingMap={() => {
@@ -398,6 +398,7 @@ export default function MemoryMapScreen() {
           pitchEnabled={false}
           rotateEnabled={false}
           scaleBarEnabled={false}
+          style={{ flex: 1 }}
           styleURL={MAPBOX_DARK_STYLE}
         >
           <Mapbox.Camera
@@ -510,7 +511,7 @@ export default function MemoryMapScreen() {
       ) : null}
 
       {noPinsInArea ? (
-        <View className="absolute inset-x-0 bottom-32 items-center px-6">
+        <View className="absolute inset-x-0 bottom-40 items-center px-6">
           <View className="rounded-2xl border border-white/10 bg-stone-950/85 px-4 py-3">
             <Text className="text-center text-sm text-stone-200">
               No memories in this area yet. Long press anywhere to leave one.
@@ -520,7 +521,7 @@ export default function MemoryMapScreen() {
       ) : null}
 
       {pinsQuery.error && !showOfflineBanner ? (
-        <View className="absolute inset-x-0 bottom-32 items-center px-6">
+        <View className="absolute inset-x-0 bottom-40 items-center px-6">
           <View className="rounded-2xl border border-rose-400/30 bg-rose-500/15 px-4 py-3">
             <Text className="text-center text-sm text-rose-100">
               Couldn&apos;t load memories for this area. Pull around the map and try again.
@@ -531,7 +532,7 @@ export default function MemoryMapScreen() {
 
       <Pressable
         accessibilityRole="button"
-        className="absolute bottom-6 right-4 rounded-full border border-white/10 bg-stone-950/90 px-4 py-3"
+        className="absolute bottom-24 right-4 rounded-full border border-white/10 bg-stone-950/90 px-4 py-3"
         onPress={() => {
           cameraRef.current?.setCamera({
             centerCoordinate: [

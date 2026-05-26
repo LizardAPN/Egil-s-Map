@@ -630,12 +630,12 @@ export default function LiveMapScreen() {
       {MAPBOX_TOKEN ? (
         <Mapbox.MapView
           attributionEnabled={false}
-          className="flex-1"
           compassEnabled
           logoEnabled={false}
           pitchEnabled={false}
           rotateEnabled={false}
           scaleBarEnabled={false}
+          style={{ flex: 1 }}
           styleURL={MAPBOX_DARK_STYLE}
         >
           <Mapbox.Camera
@@ -760,7 +760,7 @@ export default function LiveMapScreen() {
         ) : null}
       </View>
 
-      <View className="absolute bottom-6 left-4 right-4 flex-row items-end justify-between">
+      <View className="absolute bottom-24 left-4 right-4 flex-row items-end justify-between">
         <View className="max-w-[68%] rounded-[28px] border border-white/10 bg-stone-950/92 px-4 py-4">
           <Text className="text-xs uppercase tracking-[1.6px] text-stone-500">Live mode</Text>
           <Text className="mt-2 text-lg font-semibold text-white">

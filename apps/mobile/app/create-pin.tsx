@@ -236,7 +236,11 @@ export default function CreatePinScreen() {
   }, [sheetTranslateY]);
 
   const handleDismiss = () => {
-    router.back();
+    if (router.canGoBack()) {
+      router.back();
+      return;
+    }
+    router.replace("/(tabs)/map");
   };
 
   const handlePickMedia = async () => {
