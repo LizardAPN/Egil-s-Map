@@ -7,7 +7,7 @@ export interface EchoPin extends MemoryPin {
   author: {
     id: string;
     username: string;
-    avatarUrl?: string;
+    avatarUrl?: string | undefined;
   };
   distanceMeters: number;
 }
@@ -231,7 +231,8 @@ export async function getMutualFriendIds(userId: string) {
           ? (row as MutualFollowRow).following_id
           : null
       )
-      .filter((value): value is string => value !== null && followerIds.has(value));
+      .filter((value): value is string => value !== null)
+      .filter((value) => followerIds.has(value));
   } catch {
     return [];
   }
@@ -278,7 +279,7 @@ async function fetchPinsViaProfilesJoin(friendIds: string[]) {
   const { data, error } = await supabase
     .from("memory_pins")
     .select(
-      "id,user_id,title,body,media_urls,chapter_id,visibility,pinned_at,created_at,updated_at,location,profile:profiles!memory_pins_user_id_fkey(username,avatar_url)"
+      "id,user_id,title,body,media_urls,chapter_id,visibility,pinned_at,created_at,updated_at,location,profile:users!memory_pins_user_id_fkey(username,avatar_url)"
     )
     .in("user_id", friendIds)
     .in("visibility", ["friends", "public"])
@@ -303,15 +304,15 @@ export async function findNearbyFriendEchoPins(
   }
 
   const seenKeys = new Set(seenDebounceKeys);
-  const strategies = [fetchPinsViaRpc, fetchPinsViaUsersJoin, fetchPinsViaProfilesJoin] as const;
+  const strategies = [
+    async () => fetchPinsViaRpc(currentLocation, friendIds),
+    async () => fetchPinsViaUsersJoin(friendIds),
+    async () => fetchPinsViaProfilesJoin(friendIds)
+  ] as const;
 
   for (const strategy of strategies) {
     try {
-      const rows =
-        strategy === fetchPinsViaRpc
-          ? await strategy(currentLocation, friendIds)
-          : await strategy(friendIds);
-
+      const rows = await strategy();
       return rows
         .map((row) => createEchoPin(row, currentLocation))
         .filter((pin): pin is EchoPin => pin !== null)
@@ -337,7 +338,7 @@ export async function getEchoPinById(pinId: string) {
   const { data, error } = await supabase
     .from("memory_pins")
     .select(
-      "id,user_id,title,body,media_urls,chapter_id,visibility,pinned_at,created_at,updated_at,location,profile:profiles!memory_pins_user_id_fkey(username,avatar_url)"
+      "id,user_id,title,body,media_urls,chapter_id,visibility,pinned_at,created_at,updated_at,location,profile:users!memory_pins_user_id_fkey(username,avatar_url)"
     )
     .eq("id", pinId)
     .in("visibility", ["friends", "public"])

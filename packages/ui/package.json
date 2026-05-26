@@ -13,6 +13,9 @@
     "lint": "eslint src --ext .ts,.tsx",
     "typecheck": "tsc --project tsconfig.json"
   },
+  "devDependencies": {
+    "@types/react": "^19.2.15"
+  },
   "peerDependencies": {
     "react": "^18.3.1 || ^19.0.0",
     "react-native": "^0.76.0"

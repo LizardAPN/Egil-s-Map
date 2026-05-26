@@ -10,31 +10,31 @@ export interface ChapterSummary extends Chapter {
 }
 
 export interface ChapterPin extends MemoryPin {
-  locationName?: string;
-  thumbnailUrl?: string;
+  locationName?: string | undefined;
+  thumbnailUrl?: string | undefined;
 }
 
 export interface ProfileGridPin extends ChapterPin {
-  chapterColor?: string;
+  chapterColor?: string | undefined;
 }
 
-export interface ChapterWithPins extends Chapter {
+export interface ChapterWithPins extends ChapterSummary {
   pins: ChapterPin[];
 }
 
 export interface CreateChapterData {
   title: string;
-  description?: string;
+  description?: string | undefined;
   color: string;
-  startedAt?: string;
-  endedAt?: string;
-  coverUrl?: string;
+  startedAt?: string | undefined;
+  endedAt?: string | undefined;
+  coverUrl?: string | undefined;
 }
 
 export interface UpdateChapterData {
-  title?: string;
-  description?: string;
-  color?: string;
+  title?: string | undefined;
+  description?: string | undefined;
+  color?: string | undefined;
   startedAt?: string | null;
   endedAt?: string | null;
   coverUrl?: string | null;
@@ -68,8 +68,8 @@ export interface CoverCandidate {
 
 export interface CoverUploadAsset {
   uri: string;
-  fileName?: string;
-  mimeType?: string;
+  fileName?: string | undefined;
+  mimeType?: string | undefined;
 }
 
 interface ChapterRow {
@@ -361,7 +361,7 @@ export async function getPublicUserChapters(userId: string) {
 async function getRawProfileRowByUsername(username: string) {
   const client = getSupabaseClient();
   const { data, error } = await client
-    .from("profiles")
+    .from("users")
     .select("id,username,display_name,avatar_url,bio,created_at")
     .eq("username", username)
     .limit(1)
@@ -588,7 +588,7 @@ export async function getCurrentUserProfile() {
     await Promise.all([
       client.auth.getUser(),
       client
-        .from("profiles")
+        .from("users")
         .select("id,username,display_name,avatar_url,bio,created_at")
         .eq("id", userId)
         .limit(1)
@@ -634,7 +634,7 @@ export async function getUserProfile(userId: string) {
     await Promise.all([
       client.auth.getUser(),
       client
-        .from("profiles")
+        .from("users")
         .select("id,username,display_name,avatar_url,bio,created_at")
         .eq("id", userId)
         .limit(1)

@@ -9,8 +9,8 @@ export interface ChapterOption extends Pick<Chapter, "id" | "title" | "color"> {
 export interface LocalMediaAsset {
   uri: string;
   type: "image" | "video";
-  fileName?: string;
-  mimeType?: string;
+  fileName?: string | undefined;
+  mimeType?: string | undefined;
 }
 
 export interface CreateMemoryPinInput {
@@ -20,8 +20,8 @@ export interface CreateMemoryPinInput {
   visibility: MemoryPin["visibility"];
   location: Coordinates;
   mediaAssets: LocalMediaAsset[];
-  chapterId?: string;
-  newChapterTitle?: string;
+  chapterId?: string | undefined;
+  newChapterTitle?: string | undefined;
 }
 
 export interface CreateMemoryPinResult {
@@ -412,13 +412,13 @@ export async function createMemoryPin(
     throw error;
   }
 
-  const pin = mapPinRow(data as InsertMemoryPinRow);
+  const pin = mapPinRow(data as unknown as InsertMemoryPinRow);
   return { pin };
 }
 
 export function useCreateMemoryPin() {
   return useMutation({
-    mutationFn: createMemoryPin
+    mutationFn: async (input: CreateMemoryPinInput) => createMemoryPin(input)
   });
 }
 
