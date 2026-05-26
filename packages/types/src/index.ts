@@ -10,9 +10,9 @@ export interface User {
   id: string;
   username: string;
   displayName: string;
-  avatarUrl?: string;
-  bio?: string;
-  homeBase?: Coordinates;
+  avatarUrl?: string | undefined;
+  bio?: string | undefined;
+  homeBase?: Coordinates | undefined;
   createdAt: string;
 }
 
@@ -21,9 +21,9 @@ export interface MemoryPin {
   userId: string;
   location: Coordinates;
   title: string;
-  body?: string;
+  body?: string | undefined;
   mediaUrls: string[];
-  chapterId?: string;
+  chapterId?: string | undefined;
   visibility: Visibility;
   pinnedAt: string;
   createdAt: string;
@@ -34,11 +34,11 @@ export interface Chapter {
   id: string;
   userId: string;
   title: string;
-  description?: string;
+  description?: string | undefined;
   color: string;
-  coverUrl?: string;
-  startedAt?: string;
-  endedAt?: string;
+  coverUrl?: string | undefined;
+  startedAt?: string | undefined;
+  endedAt?: string | undefined;
   pinIds: string[];
   createdAt: string;
   updatedAt: string;

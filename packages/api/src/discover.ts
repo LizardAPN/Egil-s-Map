@@ -16,21 +16,21 @@ export interface DiscoverQueryParams {
 export interface DiscoverPin {
   id: string;
   title: string;
-  body?: string;
+  body?: string | undefined;
   mediaUrls: string[];
   pinnedAt: string;
   location: Coordinates;
   author: {
     id: string;
     username: string;
-    avatarUrl?: string;
-    bio?: string;
+    avatarUrl?: string | undefined;
+    bio?: string | undefined;
   };
   chapter?: {
-    id?: string;
+    id?: string | undefined;
     title: string;
     color: string;
-  };
+  } | undefined;
   reactionCount: number;
 }
 
@@ -279,7 +279,7 @@ async function fetchViaProfilesJoin(params: DiscoverQueryParams) {
   let query = supabase
     .from("memory_pins")
     .select(
-      "id,user_id,title,body,media_urls,pinned_at,location,profile:profiles!memory_pins_user_id_fkey(id,username,avatar_url,bio),chapter:chapters(id,title,color)"
+      "id,user_id,title,body,media_urls,pinned_at,location,profile:users!memory_pins_user_id_fkey(id,username,avatar_url,bio),chapter:chapters(id,title,color)"
     )
     .eq("visibility", "public")
     .order("pinned_at", { ascending: false })

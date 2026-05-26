@@ -12,7 +12,7 @@ export interface Bounds {
 
 export interface MemoryPinMapItem extends MemoryPin {
   chapter: Pick<Chapter, "id" | "title" | "color"> | null;
-  thumbnailUrl?: string;
+  thumbnailUrl?: string | undefined;
 }
 
 interface MemoryPinsInBoundsParams {
