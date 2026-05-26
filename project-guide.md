@@ -16,9 +16,9 @@
 
 **Рекомендация:** `Imprint` — работает на всех языках, легко произносится, сильная метафора («оставь след»), не занят в App Store.
 
-### Tagline
-> *"Your life, mapped."*  
-> *"Every place has a story. Leave yours."*
+### Слоганы
+> *«Твоя жизнь на карте.»* (EN: *Your life, mapped.*)  
+> *«У каждого места есть история. Расскажи свою.»* (EN: *Every place has a story. Leave yours.*)
 
 ---
 
@@ -180,44 +180,44 @@ CREATE TABLE live_presence (
 ### Вступление (скопируй одним блоком в начало файла)
 
 ```text
-You are an expert full-stack developer working on Imprint — a geo-social platform for active, adventure-driven people: programmers, travelers, dreamers, creators.
+Ты — опытный full-stack разработчик в проекте Imprint: геосоциальная платформа для активных людей — путешественников, программистов, мечтателей, творцов.
 ```
 
-### Product Vision
+### Продуктовое видение
 
-Imprint is a social network where:
+Imprint — это соцсеть, где:
 
-1. Users pin memories (stories + photos/video) to map locations
-2. Memories are organized into Life Chapters (narrative arcs)
-3. Friends' live locations are visible on a map (opt-in)
-4. Public memories from strangers are discoverable by location
+1. Пользователи закрепляют воспоминания (текст + фото/видео) на карте
+2. Воспоминания группируются в главы жизни (сюжетные арки)
+3. Живые локации друзей видны на карте (только opt-in)
+4. Публичные воспоминания незнакомцев можно находить по месту
 
-The MAP is the primary UI. Everything revolves around it.
+**КАРТА** — основной интерфейс. Всё вращается вокруг неё.
 
-### Tech Stack
+### Техстек
 
 - **Mobile**: React Native + Expo SDK 52, Expo Router v4
 - **Web**: Next.js 15 (App Router)
 - **Monorepo**: Turborepo + pnpm workspaces
-- **Styling**: NativeWind v4 (mobile) / Tailwind CSS v4 (web)
-- **Maps**: @rnmapbox/maps (mobile) / mapbox-gl (web)
+- **Стили**: NativeWind v4 (mobile) / Tailwind CSS v4 (web)
+- **Карты**: @rnmapbox/maps (mobile) / mapbox-gl (web)
 - **Backend**: Supabase (PostgreSQL + PostGIS + Auth + Realtime + Storage)
-- **State**: Zustand (global) + TanStack Query v5 (server state)
-- **Language**: TypeScript strict mode — NO `any` types ever
+- **Состояние**: Zustand (глобально) + TanStack Query v5 (сервер)
+- **Язык**: TypeScript strict — тип **`any` запрещён**
 
-### Code Standards
+### Стандарты кода
 
-- Functional components + hooks only, never class components
-- All map coordinates: { latitude: number; longitude: number }
-- All timestamps: ISO 8601 UTC strings
-- Geo queries ALWAYS use PostGIS ST_DWithin or ST_Distance
-- Row Level Security (RLS) on every Supabase table
-- Offline-first: optimistic updates with TanStack Query
-- FlatList/FlashList over ScrollView for any list > 10 items
-- Expo Image over React Native Image always
-- expo-haptics for tactile feedback on map interactions
+- Только функциональные компоненты и хуки, без классовых компонентов
+- Все координаты карты: `{ latitude: number; longitude: number }`
+- Все временные метки: строки ISO 8601 в UTC
+- Геозапросы только через PostGIS ST_DWithin или ST_Distance
+- Row Level Security (RLS) на каждой таблице Supabase
+- Offline-first: оптимистичные обновления через TanStack Query
+- Списки >10 элементов: FlatList/FlashList, не ScrollView
+- Всегда Expo Image вместо React Native Image
+- expo-haptics для тактильной отдачи при работе с картой
 
-### Key Domain Types
+### Ключевые доменные типы
 
 ```typescript
 type Visibility = 'private' | 'friends' | 'public'
@@ -254,13 +254,13 @@ interface LivePresence {
 }
 ```
 
-### File Structure
+### Структура файлов
 
 ```text
 apps/mobile/app/
   (tabs)/
-    map.tsx          ← Memory Map (главный экран)
-    discover.tsx     ← Discovery Mode
+    map.tsx          ← Карта воспоминаний (главный экран)
+    discover.tsx     ← Режим Discovery
     live.tsx         ← Live Map
     profile.tsx      ← Профиль + главы
   pin/[id].tsx       ← Детальная страница пина
@@ -271,36 +271,36 @@ packages/api/
   pins.ts            ← CRUD для пинов
   chapters.ts        ← CRUD для глав
   presence.ts        ← Live location
-  discover.ts        ← Геозапросы для Discovery
+  discover.ts        ← Геозапросы Discovery
 ```
 
-### Map Interaction Patterns
+### Паттерны работы с картой
 
-- Long press on map → create memory pin at that location
-- Tap pin cluster → zoom in + expand cluster
-- Single pin tap → show bottom sheet with preview
-- Swipe up on bottom sheet → full story view
-- Camera animation: always use flyTo with 800ms duration
+- Долгое нажатие на карте → создать пин в этой точке
+- Тап по кластеру → приблизить и раскрыть кластер
+- Тап по одному пину → нижний лист с превью
+- Свайп вверх по листу → полная история
+- Анимация камеры: всегда `flyTo` с длительностью 800 мс
 
-### Privacy Rules (CRITICAL)
+### Приватность (КРИТИЧНО)
 
-- Live location: opt-in per session, never stored permanently
-- Memory pins default to 'private'
-- Never show exact location of 'friends' mode — use fuzzy offset ±500m
-- Users can delete any of their data immediately
+- Live location: opt-in на сессию, не хранить как постоянный архив
+- Пины по умолчанию `'private'`
+- Режим `'friends'`: не показывать точные координаты — размытие ±500 м
+- Пользователь может удалить свои данные немедленно
 
-### Performance
+### Производительность
 
-- Cluster pins on map when zoom < 12
-- Lazy load media in lists
-- Paginate pin queries (20 per page)
-- Cache map tiles offline for last 5 viewed areas
+- Кластеризация при zoom < 12
+- Ленивая подгрузка медиа в списках
+- Пагинация запросов пинов (20 на страницу)
+- Кэш тайлов карты офлайн для последних 5 просмотренных областей
 
-### When writing Supabase queries
+### Запросы к Supabase
 
-- Always use `.select()` with explicit columns, never `*`
-- Always add `.limit()`
-- Geo queries example:
+- Всегда `.select()` с явными колонками, никогда `*`
+- Всегда добавляй `.limit()`
+- Пример геозапроса:
 
 ```sql
 SELECT * FROM memory_pins
@@ -310,13 +310,13 @@ ORDER BY pinned_at DESC
 LIMIT 20
 ```
 
-### Tone & UI copy
+### Тон и тексты в UI
 
-- Short, punchy English (primary language)
-- No corporate speak. Users are adventurers.
-- Error messages are human: "Couldn't save your memory. Try again?" not "Error 500"
+- В интерфейсе продукта: короткий бодрый **английский** (основной язык приложения)
+- Без корпоративного жаргона. Пользователи — искатели приключений.
+- Ошибки по-человечески: «Couldn't save your memory. Try again?», а не «Error 500»
 
-> Чтобы собрать итоговый `.cursorrules`: объедини блоки сверху вниз так же, как в файле `.cursorrules` — заголовки `##` там соответствуют подзаголовкам `###` в этом разделе.
+> Чтобы собрать итоговый `.cursorrules`: объедини блоки сверху вниз так же, как в файле `.cursorrules` в корне — заголовки `##` там соответствуют подзаголовкам `###` в этом разделе.
 
 ---
 
