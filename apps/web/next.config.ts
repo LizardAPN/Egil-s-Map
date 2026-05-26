@@ -1,7 +1,5 @@
 import type { NextConfig } from "next";
 
-const nextConfig: NextConfig = {
-  transpilePackages: ["@imprint/api", "@imprint/types", "@imprint/ui"]
-};
+const nextConfig: NextConfig = {};
 
 export default nextConfig;
