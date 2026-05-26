@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function HomePage() {
   return (
     <main className="imprint-shell">
@@ -11,16 +13,11 @@ export default function HomePage() {
             has taken across cities, countries, and years.
           </p>
           <div className="imprint-actions">
-            <a className="imprint-primary" href="/">
+            <Link className="imprint-primary" href="/map">
               Explore Imprint
-            </a>
-            <a
-              className="imprint-secondary"
-              href="https://supabase.com"
-              rel="noreferrer"
-              target="_blank"
-            >
-              Supabase backend
+            </Link>
+            <a className="imprint-secondary" href="#features">
+              See features
             </a>
           </div>
         </div>
@@ -46,7 +43,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="imprint-features">
+      <section id="features" className="imprint-features" aria-label="What Imprint offers">
         <article>
           <h2>Memory pins</h2>
           <p>Capture a moment, attach media, and drop it exactly where it happened.</p>
