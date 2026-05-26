@@ -162,11 +162,15 @@ function mapPinRow(row: InsertMemoryPinRow): MemoryPinMapItem {
 async function getCurrentUserId(client: SupabaseClient) {
   const { data, error } = await client.auth.getUser();
   if (error) {
+    const message = error.message.toLowerCase();
+    if (message.includes("session")) {
+      throw new Error("Sign in to save your memory.");
+    }
     throw error;
   }
 
   if (!data.user?.id) {
-    throw new Error("You must be signed in to save a memory.");
+    throw new Error("Sign in to save your memory.");
   }
 
   return data.user.id;
