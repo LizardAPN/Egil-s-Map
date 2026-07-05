@@ -1,9 +1,23 @@
 import Mapbox from "@rnmapbox/maps";
 import { getEchoPinById } from "@imprint/api/echoes";
+import {
+  useAddReaction,
+  usePinReactionState,
+  useRemoveReaction
+} from "@imprint/api/reactions";
+import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
+import * as Linking from "expo-linking";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useQuery } from "@tanstack/react-query";
-import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-native";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  Share,
+  Text,
+  View
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const MAPBOX_TOKEN = process.env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN ?? "";
@@ -23,6 +37,7 @@ function formatPinnedDate(dateString: string) {
 export default function PinDetailScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const queryClient = useQueryClient();
   const params = useLocalSearchParams<{
     id: string;
     latitude?: string;
@@ -33,6 +48,12 @@ export default function PinDetailScreen() {
     queryFn: async () => getEchoPinById(params.id),
     enabled: typeof params.id === "string" && params.id.length > 0
   });
+  const reactionQuery = usePinReactionState(
+    typeof params.id === "string" ? params.id : "",
+    typeof params.id === "string" && params.id.length > 0
+  );
+  const addReactionMutation = useAddReaction();
+  const removeReactionMutation = useRemoveReaction();
 
   const pin = pinQuery.data;
   const centerLatitude =
@@ -67,6 +88,9 @@ export default function PinDetailScreen() {
       </View>
     );
   }
+
+  const isUpdatingReaction =
+    addReactionMutation.isPending || removeReactionMutation.isPending;
 
   return (
     <View className="flex-1 bg-stone-950">
@@ -104,21 +128,80 @@ export default function PinDetailScreen() {
             <Text className="text-xs uppercase tracking-[1.6px] text-stone-500">Echo</Text>
             <Text className="mt-2 text-2xl font-semibold text-white">{pin.title}</Text>
           </View>
+          <View className="flex-row gap-2">
+            <Pressable
+              accessibilityRole="button"
+              className="rounded-full border border-white/10 px-3 py-2"
+              onPress={async () => {
+                const shareUrl = Linking.createURL(`/pin/${pin.id}`);
+                await Share.share({
+                  message: `${pin.title}\n${shareUrl}`,
+                  url: shareUrl
+                });
+              }}
+            >
+              <Text className="text-xs font-medium uppercase tracking-[1.6px] text-stone-300">
+                Share
+              </Text>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              className="rounded-full border border-white/10 px-3 py-2"
+              onPress={() => {
+                router.back();
+              }}
+            >
+              <Text className="text-xs font-medium uppercase tracking-[1.6px] text-stone-300">
+                Close
+              </Text>
+            </Pressable>
+          </View>
+        </View>
+        <View className="flex-row items-center justify-between gap-3">
           <Pressable
             accessibilityRole="button"
-            className="rounded-full border border-white/10 px-3 py-2"
             onPress={() => {
-              router.back();
+              router.push(`/profile/${pin.author.username}`);
             }}
           >
-            <Text className="text-xs font-medium uppercase tracking-[1.6px] text-stone-300">
-              Close
+            <Text className="text-sm text-stone-400">
+              @{pin.author.username} · {formatPinnedDate(pin.pinnedAt)}
+            </Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            className={`rounded-full px-4 py-2 ${
+              reactionQuery.data?.reacted ? "bg-rose-500/20" : "bg-white/5"
+            }`}
+            disabled={isUpdatingReaction}
+            onPress={async () => {
+              await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+              if (reactionQuery.data?.reacted) {
+                await removeReactionMutation.mutateAsync(pin.id);
+              } else {
+                await addReactionMutation.mutateAsync(pin.id);
+              }
+
+              await Promise.all([
+                queryClient.invalidateQueries({
+                  queryKey: ["reactions", "state", pin.id]
+                }),
+                queryClient.invalidateQueries({
+                  queryKey: ["reactions", "count", pin.id]
+                })
+              ]);
+            }}
+          >
+            <Text
+              className={`text-sm font-semibold ${
+                reactionQuery.data?.reacted ? "text-rose-200" : "text-stone-200"
+              }`}
+            >
+              {reactionQuery.data?.reacted ? "♥" : "♡"} {reactionQuery.data?.count ?? 0}
             </Text>
           </Pressable>
         </View>
-        <Text className="text-sm text-stone-400">
-          {pin.author.username} · {formatPinnedDate(pin.pinnedAt)}
-        </Text>
       </View>
 
       <View className="absolute bottom-0 left-0 right-0 max-h-[48%] rounded-t-[32px] border border-white/10 bg-stone-950/96 px-5 pt-4">
@@ -137,6 +220,9 @@ export default function PinDetailScreen() {
               style={{ width: "100%", height: 180, borderRadius: 24 }}
             />
           ) : null}
+          <Text className="mt-4 text-xs uppercase tracking-[1.6px] text-stone-500">
+            Shared by @{pin.author.username}
+          </Text>
           <Text className="mt-4 text-sm leading-7 text-stone-200">
             {pin.body ?? "No story text was shared for this memory."}
           </Text>

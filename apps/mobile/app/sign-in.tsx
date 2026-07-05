@@ -10,7 +10,12 @@ import {
   View
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { formatAuthError, signInWithEmail, signUpWithEmail } from "../src/services/auth";
+import {
+  formatAuthError,
+  signInWithEmail,
+  signUpWithEmail,
+  startOAuthSignIn
+} from "../src/services/auth";
 import { getSupabaseUrlDevHint } from "../src/services/supabase-dev-hint";
 import { getOnboardingCompleted } from "../src/services/onboarding";
 
@@ -58,6 +63,17 @@ export default function SignInScreen() {
     } catch (error) {
       setInlineError(formatAuthError(error));
     } finally {
+      setIsBusy(false);
+    }
+  };
+
+  const handleOAuth = async (provider: "google" | "apple") => {
+    setInlineError(null);
+    setIsBusy(true);
+    try {
+      await startOAuthSignIn(provider);
+    } catch (error) {
+      setInlineError(formatAuthError(error));
       setIsBusy(false);
     }
   };
@@ -135,6 +151,29 @@ export default function SignInScreen() {
         >
           <Text className="text-base font-medium text-stone-200">Create account</Text>
         </Pressable>
+
+        <View className="mt-6 gap-3">
+          <Pressable
+            accessibilityRole="button"
+            className="items-center rounded-full border border-white/15 px-5 py-4"
+            disabled={isBusy}
+            onPress={() => {
+              void handleOAuth("google");
+            }}
+          >
+            <Text className="text-base font-medium text-stone-200">Continue with Google</Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            className="items-center rounded-full border border-white/15 px-5 py-4"
+            disabled={isBusy}
+            onPress={() => {
+              void handleOAuth("apple");
+            }}
+          >
+            <Text className="text-base font-medium text-stone-200">Continue with Apple</Text>
+          </Pressable>
+        </View>
 
         <Text className="mt-6 text-center text-xs leading-5 text-stone-500">
           Use the same Supabase project as in apps/mobile/.env. Create a user in Supabase

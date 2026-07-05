@@ -3,7 +3,9 @@ import { createSupabaseMobileClient } from "@imprint/api/mobile";
 import {
   createEchoDebounceKey,
   findNearbyFriendEchoPins,
-  getMutualFriendIds
+  getMutualFriendIds,
+  logEchoTriggered,
+  wasEchoRecentlyTriggered
 } from "@imprint/api/echoes";
 import * as Location from "expo-location";
 import * as Notifications from "expo-notifications";
@@ -167,6 +169,20 @@ async function handleBackgroundEchoCheck(latitude: number, longitude: number) {
     return;
   }
 
+  try {
+    const wasRecentlyTriggered = await wasEchoRecentlyTriggered(
+      userId,
+      nextEcho.id,
+      nextEcho.location
+    );
+
+    if (wasRecentlyTriggered) {
+      return;
+    }
+  } catch {
+    // Fall back to local debounce storage if the log table is unavailable.
+  }
+
   const notificationBody = `${nextEcho.author.username} left a memory here ${nextEcho.timeAgoLabel} · ${nextEcho.title}`;
 
   await Notifications.scheduleNotificationAsync({
@@ -187,6 +203,12 @@ async function handleBackgroundEchoCheck(latitude: number, longitude: number) {
     nextEcho.debounceKey ?? createEchoDebounceKey(nextEcho.id, nextEcho.location),
     nextEcho.id
   );
+
+  try {
+    await logEchoTriggered(userId, nextEcho.id, nextEcho.location);
+  } catch {
+    // Local debounce is still recorded above.
+  }
 }
 
 TaskManager.defineTask(BACKGROUND_ECHOES_TASK, async ({ data, error }) => {

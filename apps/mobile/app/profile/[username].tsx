@@ -98,19 +98,27 @@ function ProfileStats({
   memories,
   chapters,
   followers,
-  following
+  following,
+  onOpenFollowers,
+  onOpenFollowing
 }: {
   memories: number;
   chapters: number;
   followers: number;
   following: number;
+  onOpenFollowers: () => void;
+  onOpenFollowing: () => void;
 }) {
   return (
     <View className="mt-4 flex-row flex-wrap gap-x-4 gap-y-2">
       <Text className="text-sm text-stone-300">{memories} memories</Text>
       <Text className="text-sm text-stone-300">{chapters} chapters</Text>
-      <Text className="text-sm text-stone-300">{followers} followers</Text>
-      <Text className="text-sm text-stone-300">{following} following</Text>
+      <Pressable accessibilityRole="button" onPress={onOpenFollowers}>
+        <Text className="text-sm text-stone-300">{followers} followers</Text>
+      </Pressable>
+      <Pressable accessibilityRole="button" onPress={onOpenFollowing}>
+        <Text className="text-sm text-stone-300">{following} following</Text>
+      </Pressable>
     </View>
   );
 }
@@ -518,6 +526,12 @@ export default function UsernameProfileScreen() {
               followers={stats.followers}
               following={stats.following}
               memories={stats.memories}
+              onOpenFollowers={() => {
+                router.push(`/profile/${profile.username}/followers`);
+              }}
+              onOpenFollowing={() => {
+                router.push(`/profile/${profile.username}/following`);
+              }}
             />
           </View>
         </View>
