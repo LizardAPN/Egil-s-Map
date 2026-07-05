@@ -1,2 +1,9 @@
 @import "tailwindcss";
+@source "../../../packages/ui/src/**/*.{ts,tsx}";
 @import "@imprint/ui/theme.css";
+
+@layer base {
+  body {
+    @apply font-sans antialiased;
+  }
+}
