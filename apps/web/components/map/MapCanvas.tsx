@@ -95,28 +95,7 @@ export function MapCanvas() {
       <div className="fixed inset-0 z-0">
         <div ref={containerRef} className="h-full w-full" aria-hidden />
       </div>
-      {process.env.NODE_ENV === "development" ? <DevFlyToButton /> : null}
     </>
-  );
-}
-
-function DevFlyToButton() {
-  const controller = useContext(MapControllerContext);
-
-  if (!controller) {
-    return null;
-  }
-
-  return (
-    <button
-      type="button"
-      className="pointer-events-auto fixed bottom-4 left-4 z-30 rounded-control border border-line bg-night-800/90 px-3 py-1.5 text-xs text-ink-secondary backdrop-blur-md"
-      onClick={() => {
-        controller.flyToPin({ lng: 15, lat: 50 });
-      }}
-    >
-      Dev: fly to Europe
-    </button>
   );
 }
 
