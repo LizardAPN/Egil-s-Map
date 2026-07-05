@@ -4,7 +4,7 @@
 
 ```
 apps/
-  mobile/     — клиент Expo (Router v4), карта, профили, discovery, live
+  mobile/     — клиент Expo (Router v4), auth, onboarding, карта, профили, settings, discovery, live
   web/        — Next.js 15 App Router (лендинг, API routes по мере необходимости)
 
 packages/
@@ -22,6 +22,7 @@ supabase/
 ## Потоки данных
 
 - **Клиенты** (mobile / web) ходят в **Supabase** с anon-ключом; чувствительные операции, требующие service role, остаются на сервере (Edge/API), если добавлены.
+- **Auth flow** на mobile: `sign-in` → Supabase session → `auth/callback` для OAuth → проверка onboarding → tabs.
 - **Realtime** используется для live-присутствия (ephemeral-сигналы, не архивировать как полную историю треков).
 - **Геозапросы** в SQL должны опираться на PostGIS (`ST_DWithin` / `ST_Distance`), а не на «сырые» сравнения float без индекса и geography/geometry.
 

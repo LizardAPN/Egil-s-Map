@@ -22,6 +22,12 @@ pnpm install
 
 Значения URL и anon key можно взять из Supabase Dashboard (Production / Preview) или из вывода `supabase start` для локального стека.
 
+## Auth и callback
+
+- Email sign-in/sign-up экран: `apps/mobile/app/sign-in.tsx`
+- OAuth callback scheme: `imprint://auth/callback`
+- Для Google/Apple нужно добавить этот redirect в Supabase Auth allow list
+
 ## Запуск приложений
 
 ### Все задачи через Turbo
@@ -65,6 +71,7 @@ pnpm exec supabase start
 ```bash
 pnpm lint
 pnpm typecheck
+pnpm test
 ```
 
 ## Частые проблемы

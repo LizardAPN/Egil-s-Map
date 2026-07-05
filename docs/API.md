@@ -11,6 +11,9 @@
 | `discover.ts` | Публичное discovery по области / радиусу |
 | `echoes.ts` | Логика «echoes» (уведомления о близости к пинам друзей) |
 | `mobile.ts` | Вспомогательные утилиты/эндпоинты под mobile-клиент |
+| `users.ts` | Профиль, onboarding state, settings, account mutations |
+| `reactions.ts` | Лайки пинов |
+| `presence.ts` | Запись `live_presence` и realtime-adjacent helpers |
 
 ## Принципы при изменениях
 
@@ -20,3 +23,10 @@
 - Ошибки на границе UI формулировать по-человечески (см. правила копирайта в `.cursorrules`).
 
 Сгенерированные типы БД (`database.types.ts`) при появлении подключать к клиенту для типобезопасности.
+
+## Важные экспортируемые функции
+
+- `users.ts`: `getCurrentUserAccount`, `setOnboardingState`, `updateProfile`, `updateUserSettings`, `changeEmail`, `changePassword`, `deleteAccount`, `getFollowers`, `getFollowing`, `useFollowers`, `useFollowing`
+- `reactions.ts`: `addReaction`, `removeReaction`, `getPinReactionCount`, `getPinReactionState`
+- `presence.ts`: `broadcastPresence`, `stopBroadcasting`, `subscribeToPresence`
+- `echoes.ts`: `findNearbyFriendEchoPins`, `getEchoPinById`, `wasEchoRecentlyTriggered`, `logEchoTriggered`
