@@ -662,10 +662,6 @@ export type Database = {
         Args: { p: Database["public"]["Tables"]["memory_pins"]["Row"] }
         Returns: boolean
       }
-      get_my_pin_location: {
-        Args: { pin_id: string }
-        Returns: Json
-      }
       disablelongtransactions: { Args: never; Returns: string }
       dropgeometrycolumn:
         | {
@@ -797,9 +793,51 @@ export type Database = {
         Returns: boolean
       }
       geomfromewkt: { Args: { "": string }; Returns: unknown }
+      get_my_pin_location: { Args: { pin_id: string }; Returns: Json }
       gettransactionid: { Args: never; Returns: unknown }
       is_mutual_follow: { Args: { a: string; b: string }; Returns: boolean }
       longtransactionsenabled: { Args: never; Returns: boolean }
+      pin_by_id: {
+        Args: { p_id: string }
+        Returns: {
+          body: string
+          chapter_id: string
+          id: string
+          lat: number
+          lng: number
+          location_exact: boolean
+          location_name: string
+          pinned_at: string
+          title: string
+          user_id: string
+          visibility: string
+        }[]
+      }
+      pins_in_bounds: {
+        Args: {
+          max_lat: number
+          max_lng: number
+          min_lat: number
+          min_lng: number
+          p_chapter_id?: string
+          p_from?: string
+          p_limit?: number
+          p_to?: string
+          p_user_id?: string
+        }
+        Returns: {
+          chapter_id: string
+          id: string
+          lat: number
+          lng: number
+          location_exact: boolean
+          location_name: string
+          pinned_at: string
+          title: string
+          user_id: string
+          visibility: string
+        }[]
+      }
       populate_geometry_columns:
         | { Args: { tbl_oid: unknown; use_typmod?: boolean }; Returns: number }
         | { Args: { use_typmod?: boolean }; Returns: string }

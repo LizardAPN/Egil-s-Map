@@ -45,6 +45,32 @@ export interface CreatePinInput {
   pinnedAt?: string;
 }
 
+export interface PinListItem {
+  id: string;
+  userId: string;
+  chapterId: string | null;
+  location: PinLocation;
+  locationExact: boolean;
+  locationName: string | null;
+  title: string;
+  visibility: Visibility;
+  pinnedAt: string;
+}
+
+export interface Pin extends PinListItem {
+  body: string | null;
+}
+
+export interface UpdatePinInput {
+  title?: string;
+  body?: string | null;
+  locationName?: string | null;
+  visibility?: Visibility;
+  pinnedAt?: string;
+  chapterId?: string | null;
+  location?: PinLocation;
+}
+
 /** Geographic bounding box: [west, south, east, north] in degrees */
 export type Bbox = readonly [
   west: number,
