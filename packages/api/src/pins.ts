@@ -1,7 +1,9 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { Bounds, MemoryPinMapItem } from "./mobile";
-import { createSupabaseMobileClient } from "./mobile";
+import type { Bounds, MemoryPinMapItem } from "./supabase/mappers";
+
+export type { Bounds, MemoryPinMapItem } from "./supabase/mappers";
+import { getSupabaseClient } from "./supabase/runtime";
 import type { Chapter, Coordinates, MemoryPin } from "@imprint/types";
 
 export interface ChapterOption extends Pick<Chapter, "id" | "title" | "color"> {}
@@ -11,6 +13,7 @@ export interface LocalMediaAsset {
   type: "image" | "video";
   fileName?: string | undefined;
   mimeType?: string | undefined;
+  file?: File | undefined;
 }
 
 export interface CreateMemoryPinInput {
@@ -91,6 +94,10 @@ function buildStoragePath(userId: string, asset: LocalMediaAsset, index: number)
 }
 
 async function fetchAssetBlob(asset: LocalMediaAsset) {
+  if (asset.file) {
+    return asset.file;
+  }
+
   const response = await fetch(asset.uri);
   if (!response.ok) {
     throw new Error(`Could not read local media asset: ${response.status}`);
@@ -352,7 +359,7 @@ export function replaceOptimisticMemoryPinInQueries(
 }
 
 export async function fetchUserChapters() {
-  const client = createSupabaseMobileClient();
+  const client = getSupabaseClient();
   const userId = await getCurrentUserId(client);
   const { data, error } = await client
     .from("chapters")
@@ -389,7 +396,7 @@ export async function createMemoryPin(
     onUploadProgress?: (progress: UploadProgress) => void;
   }
 ): Promise<CreateMemoryPinResult> {
-  const client = createSupabaseMobileClient();
+  const client = getSupabaseClient();
   const userId = await getCurrentUserId(client);
   const chapter = await createChapterIfNeeded(client, userId, input);
   const mediaUrls = await uploadMediaAssets(client, userId, input.mediaAssets, options?.onUploadProgress);

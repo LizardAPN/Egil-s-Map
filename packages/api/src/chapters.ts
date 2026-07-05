@@ -1,9 +1,6 @@
-import "react-native-url-polyfill/auto";
-
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import type { Chapter, Coordinates, MemoryPin, User } from "@imprint/types";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { getSupabaseClient } from "./supabase/runtime";
 
 export interface ChapterSummary extends Chapter {
   pinCount: number;
@@ -110,38 +107,9 @@ interface ProfileRow {
   created_at?: unknown;
 }
 
-const SUPABASE_URL =
-  process.env.EXPO_PUBLIC_SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
-const SUPABASE_ANON_KEY =
-  process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
 const CHAPTER_COVERS_BUCKET =
   process.env.EXPO_PUBLIC_SUPABASE_CHAPTER_COVERS_BUCKET ?? "chapter-covers";
 const DEFAULT_CHAPTER_COLOR = "#38bdf8";
-
-let chaptersClient: SupabaseClient | null = null;
-
-function ensureSupabaseConfig() {
-  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-    throw new Error("Supabase environment variables are not configured.");
-  }
-}
-
-function getSupabaseClient() {
-  ensureSupabaseConfig();
-
-  if (!chaptersClient) {
-    chaptersClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      auth: {
-        storage: AsyncStorage,
-        autoRefreshToken: true,
-        persistSession: true,
-        detectSessionInUrl: false
-      }
-    });
-  }
-
-  return chaptersClient;
-}
 
 function asString(value: unknown) {
   return typeof value === "string" ? value : null;
