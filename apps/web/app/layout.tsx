@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import { fontVariables } from "./fonts";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -12,8 +13,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ru">
-      <body className="min-h-screen bg-[#0A0F1E] text-[#F0F3FC]">
+    <html lang="ru" className={fontVariables}>
+      <body className="min-h-screen bg-night-900 font-sans text-ink-primary antialiased">
         {children}
       </body>
     </html>
