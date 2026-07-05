@@ -4,14 +4,16 @@ import { IconRss } from "@tabler/icons-react";
 
 import { EmptyState } from "@imprint/ui";
 
+import { AppPagePanel } from "../../../components/app/app-page-panel";
+
 export default function FeedPage() {
   return (
-    <main className="pointer-events-auto flex h-full items-center justify-center pt-[52px]">
+    <AppPagePanel>
       <EmptyState
         icon={IconRss}
         title="Лента"
         description="появится позже"
       />
-    </main>
+    </AppPagePanel>
   );
 }
