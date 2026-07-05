@@ -1,0 +1,151 @@
+@keyframes sheet-enter-right {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes sheet-exit-right {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+@keyframes sheet-enter-bottom {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes sheet-exit-bottom {
+  from {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+}
+
+@keyframes dialog-enter {
+  from {
+    transform: translate(-50%, calc(-50% + 12px)) scale(0.96);
+    opacity: 0;
+  }
+  to {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes dialog-exit {
+  from {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+  to {
+    transform: translate(-50%, calc(-50% + 12px)) scale(0.96);
+    opacity: 0;
+  }
+}
+
+@keyframes overlay-enter {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes overlay-exit {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@theme {
+  /* Night scale */
+  --color-night-950: #070b16;
+  --color-night-900: #0a0f1e;
+  --color-night-850: #0c1226;
+  --color-night-800: #131a30;
+  --color-night-700: #1e2a4e;
+  --color-night-600: #26304f;
+  --color-night-500: #3d486e;
+
+  /* Borders */
+  --color-line-subtle: #1c2440;
+  --color-line: #2a3358;
+  --color-line-strong: #3d486e;
+
+  /* Text */
+  --color-ink-primary: #f0f3fc;
+  --color-ink-body: #dee4f5;
+  --color-ink-secondary: #8b93b0;
+  --color-ink-muted: #5a648a;
+  --color-ink-cream: #f7f1e3;
+
+  /* Amber accent */
+  --color-amber: #efb65a;
+  --color-amber-bright: #f2c879;
+  --color-amber-deep: #b87f2a;
+  --color-on-amber: #41290a;
+
+  /* Chapter palette */
+  --color-ch-amber: #efb65a;
+  --color-ch-teal: #5dcaa5;
+  --color-ch-coral: #f0997b;
+  --color-ch-lime: #a8d080;
+  --color-ch-sky: #7fb3f0;
+  --color-ch-lilac: #afa9ec;
+  --color-ch-rose: #ed93b1;
+  --color-ch-ice: #8fd8e8;
+
+  /* Semantic */
+  --color-success: #5dcaa5;
+  --color-danger: #e2726e;
+  --color-warning: #efb65a;
+  --color-info: #7fb3f0;
+
+  /* Radii */
+  --radius-control: 8px;
+  --radius-card: 10px;
+  --radius-sheet: 12px;
+
+  /* Shadow */
+  --shadow-float: 0 8px 24px rgb(0 0 0 / 0.35);
+
+  /* Fonts (CSS variables set by next/font on <html>) */
+  --font-family-sans: var(--font-sans), system-ui, sans-serif;
+  --font-display: var(--font-fraunces), Georgia, serif;
+  --font-family-mono: var(--font-mono), ui-monospace, monospace;
+
+  /* Animations */
+  --animate-sheet-enter-right: sheet-enter-right 250ms ease-out;
+  --animate-sheet-exit-right: sheet-exit-right 200ms ease-out forwards;
+  --animate-sheet-enter-bottom: sheet-enter-bottom 250ms ease-out;
+  --animate-sheet-exit-bottom: sheet-exit-bottom 200ms ease-out forwards;
+  --animate-dialog-enter: dialog-enter 250ms ease-out;
+  --animate-dialog-exit: dialog-exit 200ms ease-out forwards;
+  --animate-overlay-enter: overlay-enter 250ms ease-out;
+  --animate-overlay-exit: overlay-exit 200ms ease-out forwards;
+}
