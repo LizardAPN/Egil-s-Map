@@ -9,24 +9,17 @@ import {
   Dialog,
   EmptyState,
   Input,
+  MonthPicker,
   Pill,
   Sheet,
   Skeleton,
   Textarea,
   Toaster,
   toast,
+  type MonthValue,
 } from "@imprint/ui";
 
-const CHAPTER_COLORS = [
-  { label: "Amber", color: "var(--color-ch-amber)" },
-  { label: "Teal", color: "var(--color-ch-teal)" },
-  { label: "Coral", color: "var(--color-ch-coral)" },
-  { label: "Lime", color: "var(--color-ch-lime)" },
-  { label: "Sky", color: "var(--color-ch-sky)" },
-  { label: "Lilac", color: "var(--color-ch-lilac)" },
-  { label: "Rose", color: "var(--color-ch-rose)" },
-  { label: "Ice", color: "var(--color-ch-ice)" },
-] as const;
+import { CHAPTER_COLORS } from "../../../lib/chapter-colors";
 
 function Section({
   title,
@@ -47,6 +40,8 @@ export default function DevUiPage() {
   const [rightSheetOpen, setRightSheetOpen] = useState(false);
   const [bottomSheetOpen, setBottomSheetOpen] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [monthValue, setMonthValue] = useState<MonthValue | null>(null);
+  const [boundedMonth, setBoundedMonth] = useState<MonthValue | null>(null);
 
   return (
     <div className="min-h-screen space-y-16 bg-night-900 p-8">
@@ -114,6 +109,31 @@ export default function DevUiPage() {
         </div>
       </Section>
 
+      <Section title="Month picker">
+        <div className="grid max-w-md gap-4">
+          <MonthPicker value={monthValue} onChange={setMonthValue} />
+          <MonthPicker
+            value={boundedMonth}
+            onChange={setBoundedMonth}
+            min={{ year: 2024, month: 6 }}
+            max={{ year: 2026, month: 3 }}
+            placeholder="С ограничениями"
+          />
+          <MonthPicker
+            value={{ year: 2025, month: 1 }}
+            onChange={() => undefined}
+            error
+            errorMessage="Конец не может быть раньше начала"
+          />
+          <p className="font-mono text-sm text-ink-secondary">
+            Selected:{" "}
+            {monthValue
+              ? `${String(monthValue.year)}-${String(monthValue.month).padStart(2, "0")}`
+              : "null"}
+          </p>
+        </div>
+      </Section>
+
       <Section title="Cards">
         <div className="grid max-w-md gap-4">
           <Card className="p-4">
@@ -135,9 +155,9 @@ export default function DevUiPage() {
         <div className="flex flex-wrap gap-2">
           {CHAPTER_COLORS.map((chapter) => (
             <Pill
-              key={chapter.label}
+              key={chapter.id}
               label={chapter.label}
-              color={chapter.color}
+              color={chapter.hex}
             />
           ))}
         </div>
