@@ -1,6 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Mapbox from "@rnmapbox/maps";
 import { createSupabaseMobileClient } from "@imprint/api/mobile";
+import { broadcastPresence, stopBroadcasting } from "@imprint/api/presence";
 import type { Coordinates } from "@imprint/types";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { Image } from "expo-image";
@@ -404,6 +405,10 @@ export default function LiveMapScreen() {
         event: BROADCAST_TOPIC,
         payload
       });
+      await broadcastPresence({
+        location: fuzzyCoordinates,
+        visibility: sharingMode
+      });
 
       lastBroadcastAtRef.current = now;
     } catch (error) {
@@ -483,6 +488,9 @@ export default function LiveMapScreen() {
         clearInterval(broadcastTimerRef.current);
         broadcastTimerRef.current = null;
       }
+      void stopBroadcasting().catch(() => {
+        return;
+      });
       return;
     }
 

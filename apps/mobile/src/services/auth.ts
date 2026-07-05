@@ -1,7 +1,11 @@
 import { createSupabaseMobileClient } from "@imprint/api/mobile";
+import { stopBroadcasting } from "@imprint/api/presence";
 import { formatNetworkAuthError } from "./supabase-dev-hint";
+import { stopEchoBackgroundUpdates } from "./echoService";
+import * as Linking from "expo-linking";
 
 const MIN_PASSWORD_LENGTH = 6;
+type OAuthProvider = "google" | "apple";
 
 function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
@@ -62,6 +66,56 @@ export async function signUpWithEmail(email: string, password: string) {
     throw error;
   }
   return data.session;
+}
+
+export async function startOAuthSignIn(provider: OAuthProvider) {
+  const client = createSupabaseMobileClient();
+  const redirectTo = Linking.createURL("/auth/callback");
+  const { data, error } = await client.auth.signInWithOAuth({
+    provider,
+    options: {
+      redirectTo,
+      skipBrowserRedirect: true
+    }
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  if (!data.url) {
+    throw new Error("Supabase did not return an OAuth URL.");
+  }
+
+  await Linking.openURL(data.url);
+}
+
+export async function exchangeOAuthCodeForSession(code: string) {
+  const client = createSupabaseMobileClient();
+  const { data, error } = await client.auth.exchangeCodeForSession(code);
+
+  if (error) {
+    throw error;
+  }
+
+  return data.session;
+}
+
+export async function signOut() {
+  const client = createSupabaseMobileClient();
+
+  try {
+    await stopBroadcasting();
+  } catch {
+    // Continue sign-out even if presence cleanup fails.
+  } finally {
+    await stopEchoBackgroundUpdates();
+  }
+
+  const { error } = await client.auth.signOut();
+  if (error) {
+    throw error;
+  }
 }
 
 export function formatAuthError(error: unknown) {

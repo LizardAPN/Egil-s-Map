@@ -5,11 +5,11 @@ import {
   createChapterWithCover,
   useChapterCoverCandidates,
   useCurrentUserChapters,
-  useCurrentUserProfile,
   useUserChapters,
   useUserProfile,
   type CoverCandidate
 } from "@imprint/api/chapters";
+import { useCurrentUserAccount } from "@imprint/api/users";
 import * as ImagePicker from "expo-image-picker";
 import { Image } from "expo-image";
 import { router, useLocalSearchParams } from "expo-router";
@@ -441,7 +441,7 @@ export default function ProfileScreen() {
     [params.userId]
   );
   const isOwnProfile = viewedUserId.length === 0;
-  const ownProfileQuery = useCurrentUserProfile(isOwnProfile);
+  const ownProfileQuery = useCurrentUserAccount(isOwnProfile);
   const ownChaptersQuery = useCurrentUserChapters(isOwnProfile);
   const otherProfileQuery = useUserProfile(viewedUserId, !isOwnProfile);
   const otherChaptersQuery = useUserChapters(viewedUserId, !isOwnProfile);
@@ -490,6 +490,31 @@ export default function ProfileScreen() {
               <Text className="mt-4 text-sm leading-6 text-stone-300">
                 {profileQuery.data.bio ?? "Collecting places that changed the story."}
               </Text>
+              {isOwnProfile && ownProfileQuery.data?.website ? (
+                <Text className="mt-3 text-sm text-sky-200">{ownProfileQuery.data.website}</Text>
+              ) : null}
+              {isOwnProfile ? (
+                <View className="mt-5 flex-row gap-3">
+                  <Pressable
+                    accessibilityRole="button"
+                    className="rounded-full bg-sky-400 px-4 py-3"
+                    onPress={() => {
+                      router.push("/edit-profile");
+                    }}
+                  >
+                    <Text className="text-sm font-semibold text-stone-950">Edit profile</Text>
+                  </Pressable>
+                  <Pressable
+                    accessibilityRole="button"
+                    className="rounded-full border border-white/10 px-4 py-3"
+                    onPress={() => {
+                      router.push("/settings");
+                    }}
+                  >
+                    <Text className="text-sm font-medium text-stone-200">Settings</Text>
+                  </Pressable>
+                </View>
+              ) : null}
             </View>
           ) : null}
         </View>
