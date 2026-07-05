@@ -9,7 +9,9 @@
     "lint": "turbo lint",
     "typecheck": "turbo typecheck",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "gen:types": "npx supabase gen types typescript --local > packages/types/src/database.ts",
+    "db:reset": "npx supabase db reset"
   },
   "devDependencies": {
     "@eslint/js": "^9.28.0",
