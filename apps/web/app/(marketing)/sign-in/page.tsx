@@ -8,6 +8,7 @@ import { createBrowserClient, toApiError } from "@imprint/api";
 import { Button, Input } from "@imprint/ui";
 
 import { AuthShell } from "../../../components/auth/auth-shell";
+import { authOfflineMessage, resolveAuthCatchError } from "../../../lib/auth-error";
 import { formField } from "../../../lib/form-field";
 import { safeRedirectPath } from "../../../lib/auth-redirect";
 
@@ -24,6 +25,10 @@ function authErrorMessage(code: string): { message: string; showCode: boolean } 
       message: "Supabase не настроен. Проверь .env.local и перезапусти dev-сервер.",
       showCode: false,
     };
+  }
+
+  if (code === "offline") {
+    return { message: authOfflineMessage(), showCode: false };
   }
 
   return {
@@ -65,8 +70,7 @@ function SignInForm() {
       router.push(safeRedirectPath(nextPath));
       router.refresh();
     } catch (caught) {
-      const message = caught instanceof Error ? caught.message : "unknown";
-      setErrorCode(message.includes("Missing Supabase env") ? "config" : "unknown");
+      setErrorCode(resolveAuthCatchError(caught));
     } finally {
       setLoading(false);
     }

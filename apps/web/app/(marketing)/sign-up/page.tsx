@@ -8,6 +8,7 @@ import { createBrowserClient, toApiError } from "@imprint/api";
 import { Button, Input } from "@imprint/ui";
 
 import { AuthShell } from "../../../components/auth/auth-shell";
+import { authOfflineMessage, resolveAuthCatchError } from "../../../lib/auth-error";
 import { formField } from "../../../lib/form-field";
 
 function signUpErrorMessage(code: string): { message: string; showCode: boolean } {
@@ -26,6 +27,8 @@ function signUpErrorMessage(code: string): { message: string; showCode: boolean 
         message: "Supabase не настроен. Проверь .env.local и перезапусти dev-сервер.",
         showCode: false,
       };
+    case "offline":
+      return { message: authOfflineMessage(), showCode: false };
     default:
       return {
         message: "Не удалось создать аккаунт. Попробуй ещё раз?",
@@ -81,9 +84,7 @@ export default function SignUpPage() {
 
       setErrorCode("no_session");
     } catch (caught) {
-      const message =
-        caught instanceof Error ? caught.message : "unknown";
-      setErrorCode(message.includes("Missing Supabase env") ? "config" : "unknown");
+      setErrorCode(resolveAuthCatchError(caught));
     } finally {
       setLoading(false);
     }
