@@ -11,6 +11,7 @@ export default tseslint.config(
       "**/dist/**",
       "**/*.config.mjs",
       "**/next-env.d.ts",
+      "**/packages/types/src/database.ts",
     ],
   },
   eslint.configs.recommended,
