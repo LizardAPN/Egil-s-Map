@@ -1,3 +1,5 @@
+@import "tailwindcss";
+
 :root {
   color-scheme: dark;
   --bg: #050816;
@@ -336,4 +338,360 @@ a {
     width: 240px;
     height: 240px;
   }
+}
+
+.imprint-onboarding-shell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding-top: 32px;
+  padding-bottom: 56px;
+}
+
+.imprint-onboarding {
+  width: 100%;
+  max-width: 640px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.imprint-onboarding-visual-wrap {
+  width: 100%;
+}
+
+.imprint-onboarding-visual {
+  min-height: 320px;
+  max-height: 420px;
+}
+
+.imprint-onboarding-copy {
+  text-align: center;
+  border-radius: 32px;
+  padding: 32px 28px;
+}
+
+.imprint-onboarding-copy h1 {
+  margin: 0;
+  font-size: clamp(2rem, 6vw, 3.2rem);
+  line-height: 1.05;
+  letter-spacing: -0.04em;
+}
+
+.imprint-onboarding-copy .imprint-subcopy {
+  margin-top: 16px;
+}
+
+.imprint-onboarding-actions {
+  justify-content: center;
+  margin-top: 24px;
+}
+
+.imprint-onboarding-actions .imprint-primary {
+  border: none;
+  cursor: pointer;
+  font: inherit;
+}
+
+.imprint-onboarding-actions .imprint-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@media (max-width: 640px) {
+  .imprint-onboarding-visual {
+    min-height: 280px;
+  }
+
+  .imprint-onboarding-copy {
+    padding: 24px 20px;
+  }
+}
+
+.app-page {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 24px 20px 96px;
+}
+
+.app-map-screen {
+  position: relative;
+  height: calc(100vh - 64px);
+  min-height: 480px;
+}
+
+.app-map,
+.app-map-fallback {
+  width: 100%;
+  height: 100%;
+}
+
+.app-map-fallback {
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  text-align: center;
+  color: var(--muted);
+}
+
+.app-map-toolbar {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  display: flex;
+  gap: 8px;
+  z-index: 2;
+}
+
+.app-map-tool {
+  border: 1px solid var(--border);
+  background: rgba(15, 23, 42, 0.85);
+  color: var(--text);
+  border-radius: 999px;
+  padding: 8px 14px;
+  cursor: pointer;
+  backdrop-filter: blur(12px);
+}
+
+.app-map-tool-primary {
+  border-color: rgba(56, 189, 248, 0.5);
+  color: var(--accent-strong);
+}
+
+.app-map-status {
+  position: absolute;
+  bottom: 96px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.88);
+  border: 1px solid var(--border);
+  font-size: 0.9rem;
+  color: var(--muted);
+  z-index: 2;
+}
+
+.app-offline-banner {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 3;
+  padding: 8px 12px;
+  text-align: center;
+  background: rgba(251, 113, 133, 0.2);
+  color: #fecdd3;
+  font-size: 0.88rem;
+}
+
+.app-bottom-sheet {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+  z-index: 4;
+  display: grid;
+  grid-template-columns: 96px 1fr;
+  gap: 14px;
+  padding: 14px;
+  border-radius: 18px;
+  border: 1px solid var(--border);
+  background: rgba(15, 23, 42, 0.88);
+  backdrop-filter: blur(18px);
+}
+
+.app-sheet-close {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-size: 1.4rem;
+  cursor: pointer;
+}
+
+.app-sheet-thumb {
+  width: 96px;
+  height: 96px;
+  border-radius: 12px;
+  object-fit: cover;
+}
+
+.app-sheet-thumb-empty {
+  border: 2px solid var(--accent-strong);
+  background: rgba(56, 189, 248, 0.08);
+}
+
+.app-sheet-kicker {
+  margin: 0 0 4px;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.app-sheet-body h2 {
+  margin: 0 0 8px;
+  font-size: 1.2rem;
+}
+
+.app-sheet-actions {
+  margin-top: 12px;
+}
+
+.app-btn {
+  border-radius: 12px;
+  padding: 10px 16px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+
+.app-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.app-btn-primary {
+  background: linear-gradient(135deg, #38bdf8, #0ea5e9);
+  color: #020617;
+}
+
+.app-btn-secondary {
+  background: transparent;
+  border-color: var(--border);
+  color: var(--text);
+}
+
+.app-btn-ghost {
+  background: rgba(148, 163, 184, 0.12);
+  color: var(--text);
+}
+
+.app-auth-page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+}
+
+.app-auth-card {
+  width: min(420px, 100%);
+  padding: 28px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+}
+
+.app-auth-card h1 {
+  margin: 0 0 8px;
+}
+
+.app-auth-actions {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.app-auth-hint {
+  margin: 10px 0 0;
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.app-field {
+  display: grid;
+  gap: 6px;
+  margin-top: 14px;
+  font-size: 0.9rem;
+}
+
+.app-field input,
+.app-field textarea,
+.app-field select {
+  width: 100%;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: rgba(2, 6, 23, 0.6);
+  color: var(--text);
+  padding: 10px 12px;
+}
+
+.app-muted {
+  color: var(--muted);
+}
+
+.app-error {
+  color: #fecdd3;
+  margin-top: 12px;
+}
+
+.app-spinner {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--muted);
+}
+
+.app-spinner-ring {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid rgba(56, 189, 248, 0.25);
+  border-top-color: var(--accent-strong);
+  animation: app-spin 0.8s linear infinite;
+}
+
+@keyframes app-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.app-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px;
+}
+
+.app-card {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px;
+  background: var(--bg-elevated);
+}
+
+.app-echo-toast {
+  position: fixed;
+  bottom: 88px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 50;
+  padding: 10px 16px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: rgba(15, 23, 42, 0.95);
+  color: var(--text);
+  max-width: min(92vw, 420px);
+}
+
+.app-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.app-link {
+  color: var(--accent-strong);
+}
+
+.app-empty {
+  padding: 24px;
+  text-align: center;
+  color: var(--muted);
+  border: 1px dashed var(--border);
+  border-radius: 14px;
 }

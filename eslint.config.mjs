@@ -13,7 +13,9 @@ export default tseslint.config(
       "**/*.d.ts",
       "**/babel.config.js",
       "**/metro.config.js",
+      "**/react-native.config.js",
       "**/tailwind.config.js",
+      "**/postcss.config.mjs",
       "**/node_modules/**"
     ]
   },

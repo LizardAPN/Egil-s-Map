@@ -1,6 +1,15 @@
 import Link from "next/link";
+import { createServerSupabaseClient } from "../../lib/supabase/server";
 
-export default function HomePage() {
+export default async function MarketingPage() {
+  const supabase = await createServerSupabaseClient();
+  const {
+    data: { user }
+  } = await supabase.auth.getUser();
+
+  const ctaHref = user ? "/map" : "/sign-in";
+  const ctaLabel = user ? "Open your map" : "Explore Imprint";
+
   return (
     <main className="imprint-shell">
       <section className="imprint-hero">
@@ -13,8 +22,8 @@ export default function HomePage() {
             has taken across cities, countries, and years.
           </p>
           <div className="imprint-actions">
-            <Link className="imprint-primary" href="/map">
-              Explore Imprint
+            <Link className="imprint-primary" href={ctaHref}>
+              {ctaLabel}
             </Link>
             <a className="imprint-secondary" href="#features">
               See features
