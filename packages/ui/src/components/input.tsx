@@ -21,6 +21,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         <input
           ref={ref}
           id={id}
+          suppressHydrationWarning
           className={cn(
             "h-10 w-full rounded-control border bg-night-800 px-3 text-sm text-ink-primary placeholder:text-ink-muted",
             "focus:border-line-strong focus:outline-none focus:ring-1 focus:ring-amber/25",
