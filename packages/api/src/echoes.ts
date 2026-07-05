@@ -1,6 +1,4 @@
-import "react-native-url-polyfill/auto";
-
-import { createSupabaseMobileClient } from "./mobile";
+import { getSupabaseClient } from "./supabase/runtime";
 import type { Coordinates, MemoryPin } from "@imprint/types";
 
 export interface EchoPin extends MemoryPin {
@@ -154,10 +152,69 @@ function dayBucketIso(date = new Date()) {
   return date.toISOString().slice(0, 10);
 }
 
+function getEchoLocationBuckets(coordinates: Coordinates) {
+  return {
+    latitudeBucket: Math.round(coordinates.latitude * 1000),
+    longitudeBucket: Math.round(coordinates.longitude * 1000)
+  };
+}
+
 export function createEchoDebounceKey(pinId: string, coordinates: Coordinates, date = new Date()) {
-  const latitudeBucket = Math.round(coordinates.latitude * 1000);
-  const longitudeBucket = Math.round(coordinates.longitude * 1000);
+  const { latitudeBucket, longitudeBucket } = getEchoLocationBuckets(coordinates);
   return `${pinId}:${latitudeBucket}:${longitudeBucket}:${dayBucketIso(date)}`;
+}
+
+export async function wasEchoRecentlyTriggered(
+  userId: string,
+  pinId: string,
+  coordinates: Coordinates,
+  date = new Date()
+) {
+  const supabase = getSupabaseClient();
+  const { latitudeBucket, longitudeBucket } = getEchoLocationBuckets(coordinates);
+  const { data, error } = await supabase
+    .from("echo_logs")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("pin_id", pinId)
+    .eq("latitude_bucket", latitudeBucket)
+    .eq("longitude_bucket", longitudeBucket)
+    .eq("triggered_on", dayBucketIso(date))
+    .limit(1)
+    .maybeSingle();
+
+  if (error && error.code !== "PGRST116") {
+    throw error;
+  }
+
+  return Boolean(data);
+}
+
+export async function logEchoTriggered(
+  userId: string,
+  pinId: string,
+  coordinates: Coordinates,
+  date = new Date()
+) {
+  const supabase = getSupabaseClient();
+  const { latitudeBucket, longitudeBucket } = getEchoLocationBuckets(coordinates);
+  const { error } = await supabase.from("echo_logs").upsert(
+    {
+      user_id: userId,
+      pin_id: pinId,
+      latitude_bucket: latitudeBucket,
+      longitude_bucket: longitudeBucket,
+      triggered_on: dayBucketIso(date)
+    },
+    {
+      onConflict: "user_id,pin_id,latitude_bucket,longitude_bucket,triggered_on",
+      ignoreDuplicates: true
+    }
+  );
+
+  if (error) {
+    throw error;
+  }
 }
 
 function createEchoPin(row: EchoPinRow, currentLocation: Coordinates): EchoPin | null {
@@ -203,7 +260,7 @@ function createEchoPin(row: EchoPinRow, currentLocation: Coordinates): EchoPin |
 }
 
 export async function getMutualFriendIds(userId: string) {
-  const supabase = createSupabaseMobileClient();
+  const supabase = getSupabaseClient();
 
   try {
     const [followersResult, followingResult] = await Promise.all([
@@ -239,7 +296,7 @@ export async function getMutualFriendIds(userId: string) {
 }
 
 async function fetchPinsViaRpc(currentLocation: Coordinates, friendIds: string[]) {
-  const supabase = createSupabaseMobileClient();
+  const supabase = getSupabaseClient();
   const { data, error } = await supabase.rpc("find_nearby_friend_echoes", {
     latitude: currentLocation.latitude,
     longitude: currentLocation.longitude,
@@ -255,7 +312,7 @@ async function fetchPinsViaRpc(currentLocation: Coordinates, friendIds: string[]
 }
 
 async function fetchPinsViaUsersJoin(friendIds: string[]) {
-  const supabase = createSupabaseMobileClient();
+  const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from("memory_pins")
     .select(
@@ -275,7 +332,7 @@ async function fetchPinsViaUsersJoin(friendIds: string[]) {
 }
 
 async function fetchPinsViaProfilesJoin(friendIds: string[]) {
-  const supabase = createSupabaseMobileClient();
+  const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from("memory_pins")
     .select(
@@ -334,7 +391,7 @@ export async function findNearbyFriendEchoPins(
 }
 
 export async function getEchoPinById(pinId: string) {
-  const supabase = createSupabaseMobileClient();
+  const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from("memory_pins")
     .select(

@@ -1,6 +1,4 @@
-import "react-native-url-polyfill/auto";
-
-import { createSupabaseMobileClient } from "./mobile";
+import { getSupabaseClient } from "./supabase/runtime";
 import type { Coordinates } from "@imprint/types";
 
 export type DiscoverTimeFilter = "recent" | "all-time";
@@ -229,7 +227,7 @@ function recentCutoffIso() {
 }
 
 async function fetchViaExactRpc(params: DiscoverQueryParams) {
-  const supabase = createSupabaseMobileClient();
+  const supabase = getSupabaseClient();
   const { data, error } = await supabase.rpc("discover_public_memory_pins", {
     longitude: params.center.longitude,
     latitude: params.center.latitude,
@@ -247,7 +245,7 @@ async function fetchViaExactRpc(params: DiscoverQueryParams) {
 }
 
 async function fetchViaUsersJoin(params: DiscoverQueryParams) {
-  const supabase = createSupabaseMobileClient();
+  const supabase = getSupabaseClient();
   let query = supabase
     .from("memory_pins")
     .select(
@@ -275,7 +273,7 @@ async function fetchViaUsersJoin(params: DiscoverQueryParams) {
 }
 
 async function fetchViaProfilesJoin(params: DiscoverQueryParams) {
-  const supabase = createSupabaseMobileClient();
+  const supabase = getSupabaseClient();
   let query = supabase
     .from("memory_pins")
     .select(
