@@ -1,4 +1,4 @@
-import { Fraunces, Inter, JetBrains_Mono } from "next/font/google";
+import { Inter, JetBrains_Mono, Playfair_Display } from "next/font/google";
 
 export const inter = Inter({
   subsets: ["latin", "cyrillic"],
@@ -7,10 +7,9 @@ export const inter = Inter({
   display: "swap",
 });
 
-export const fraunces = Fraunces({
-  subsets: ["latin", "latin-ext"],
-  weight: "variable",
-  axes: ["opsz"],
+export const playfairDisplay = Playfair_Display({
+  subsets: ["latin", "cyrillic"],
+  weight: ["400", "500"],
   variable: "--font-fraunces",
   display: "swap",
 });
@@ -22,4 +21,4 @@ export const jetbrainsMono = JetBrains_Mono({
   display: "swap",
 });
 
-export const fontVariables = `${inter.variable} ${fraunces.variable} ${jetbrainsMono.variable}`;
+export const fontVariables = `${inter.variable} ${playfairDisplay.variable} ${jetbrainsMono.variable}`;

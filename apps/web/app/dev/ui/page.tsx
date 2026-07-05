@@ -63,7 +63,7 @@ export default function DevUiPage() {
           on deep night backgrounds without stealing focus from the map.
         </p>
         <p className="font-display text-xl text-ink-cream">
-          Fraunces brings book-like warmth to chapter titles.
+          Playfair Display brings book-like warmth to chapter titles.
         </p>
         <p className="font-mono text-sm text-ink-secondary">
           2024-03-15 · 59.9139° N, 10.7522° E

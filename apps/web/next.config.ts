@@ -14,6 +14,13 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  webpack: (config, { dev }) => {
+    // Avoid corrupted PackFileCacheStrategy state when workspace packages hot-reload.
+    if (dev) {
+      config.cache = { type: "memory" };
+    }
+    return config;
+  },
 };
 
 export default nextConfig;

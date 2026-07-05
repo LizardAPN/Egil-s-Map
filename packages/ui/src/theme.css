@@ -134,7 +134,7 @@
   /* Shadow */
   --shadow-float: 0 8px 24px rgb(0 0 0 / 0.35);
 
-  /* Fonts (CSS variables set by next/font on <html>) */
+  /* Fonts (CSS variables set by next/font on <html>; --font-fraunces = Playfair Display) */
   --font-family-sans: var(--font-sans), system-ui, sans-serif;
   --font-display: var(--font-fraunces), Georgia, serif;
   --font-family-mono: var(--font-mono), ui-monospace, monospace;
