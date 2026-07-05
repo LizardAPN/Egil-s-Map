@@ -12,7 +12,9 @@ export interface User {
   displayName: string;
   avatarUrl?: string | undefined;
   bio?: string | undefined;
+  website?: string | undefined;
   homeBase?: Coordinates | undefined;
+  isOnboarded?: boolean | undefined;
   createdAt: string;
 }
 
@@ -50,4 +52,11 @@ export interface LivePresence {
   visibility: PresenceVisibility;
   updatedAt: string;
   expiresAt: string;
+}
+
+export interface UserSettings {
+  echoesEnabled: boolean;
+  notificationsEnabled: boolean;
+  defaultLiveVisibility: PresenceVisibility;
+  defaultPinVisibility: Visibility;
 }
