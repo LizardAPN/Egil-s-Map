@@ -90,9 +90,14 @@ export async function updateMyProfile(
   return mapUserRow(data);
 }
 
+export interface UsernameAvailabilityOptions {
+  excludeUserId?: string;
+}
+
 export async function isUsernameAvailable(
   client: ProfileClient,
   username: string,
+  options?: UsernameAvailabilityOptions,
 ): Promise<boolean> {
   const { data, error } = await client
     .from("users")
@@ -104,5 +109,13 @@ export async function isUsernameAvailable(
     throw toApiError(error);
   }
 
-  return data === null;
+  if (data === null) {
+    return true;
+  }
+
+  if (options?.excludeUserId && data.id === options.excludeUserId) {
+    return true;
+  }
+
+  return false;
 }
