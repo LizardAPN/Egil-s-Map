@@ -5,7 +5,7 @@
 1. Создайте проект в [Supabase](https://supabase.com) или используйте локальный стек (`supabase start`).
 2. В Dashboard: **Settings → API** — `URL`, `anon public`, при необходимости `service_role` (только сервер, не в mobile bundle и не в `NEXT_PUBLIC_*`).
 3. Примените миграции из `supabase/migrations/` через CLI или CI.
-4. Проверьте **Storage buckets** — имена должны совпадать с переменными в `apps/mobile/.env.example` (`memory-media`, `chapter-covers` и т.д., если используются).
+4. Проверьте **Storage buckets** — имена должны совпадать с переменными в `apps/mobile/.env.example` (`memory-media`, `chapter-covers`; avatars по умолчанию тоже могут использовать публичный bucket).
 
 ## Mapbox
 
@@ -20,4 +20,5 @@
 ## Прочее
 
 - URL приложения для web: `NEXT_PUBLIC_APP_URL` (редиректы, абсолютные ссылки).
+- Для mobile OAuth redirect используйте `imprint://auth/callback`.
 - Любые новые секреты добавляйте через `.env.example` с пустым значением и комментарием назначения.
