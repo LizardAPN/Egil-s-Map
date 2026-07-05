@@ -1,4 +1,4 @@
-import type { Tables } from "@imprint/types";
+import type { Chapter, Tables, Visibility } from "@imprint/types";
 
 export interface UserProfile {
   id: string;
@@ -30,5 +30,40 @@ export function mapUserRow(row: UserProfileRow): UserProfile {
     avatarUrl: row.avatar_url,
     isOnboarded: row.is_onboarded,
     createdAt: row.created_at,
+  };
+}
+
+export type ChapterRow = Pick<
+  Tables<"chapters">,
+  | "id"
+  | "user_id"
+  | "slug"
+  | "title"
+  | "description"
+  | "color"
+  | "cover_url"
+  | "started_at"
+  | "ended_at"
+  | "visibility"
+  | "position"
+  | "created_at"
+  | "updated_at"
+>;
+
+export function mapChapterRow(row: ChapterRow): Chapter {
+  return {
+    id: row.id,
+    userId: row.user_id,
+    slug: row.slug,
+    title: row.title,
+    description: row.description,
+    color: row.color,
+    coverUrl: row.cover_url,
+    startedAt: row.started_at,
+    endedAt: row.ended_at,
+    visibility: row.visibility as Visibility,
+    position: row.position,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
   };
 }
