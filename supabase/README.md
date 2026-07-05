@@ -8,6 +8,14 @@
 - `follows`: граф подписок
 - `reactions`: лайки пинов по пользователям
 - `live_presence`: последнее переданное местоположение при шаринге
+- `echo_logs`: debounce-лог фоновых Echoes уведомлений
+
+Дополнительные поля предпочтений пользователя в новых миграциях:
+
+- `echoes_enabled`
+- `notifications_enabled`
+- `default_live_visibility`
+- `default_pin_visibility`
 
 ## Политики RLS
 
@@ -30,6 +38,7 @@
 
 - владелец вставляет и обновляет только свою строку присутствия
 - читатели видят строки режима `community` и взаимных друзей в режиме «друзья»
+- владелец может удалить только свою строку присутствия
 
 ### `follows`
 
@@ -41,9 +50,14 @@
 - все строки доступны на чтение
 - аутентифицированный пользователь создаёт и удаляет только свои реакции
 
+### `echo_logs`
+
+- пользователь читает, создаёт и удаляет только свои debounce-записи
+
 ## Cron-задачи
 
-В закоммиченных миграциях отсутствуют.
+- `cleanup-live-presence`: каждые 15 минут удаляет устаревшие строки `live_presence`
+- `cleanup-echo-logs`: ежедневно чистит старые `echo_logs`
 
 ## Триггеры и функции
 
@@ -51,10 +65,14 @@
 - `update_updated_at`
 - `is_mutual_follow`
 - `can_view_memory_pin`
+- `delete_my_account`
+- `cleanup_expired_live_presence`
+- `cleanup_old_echo_logs`
 - `on_auth_user_created`
 - `update_users_updated_at`
 - `update_chapters_updated_at`
 - `update_memory_pins_updated_at`
+- RPC `delete_my_account()` используется mobile settings для удаления аккаунта.
 
 ## Локальный сброс
 
