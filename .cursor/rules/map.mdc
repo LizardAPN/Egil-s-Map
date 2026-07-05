@@ -1,0 +1,26 @@
+---
+description: Mapbox map architecture rules — apply for map components and stores
+globs: ["apps/web/components/map/**", "apps/web/components/trail/**", "apps/web/stores/**", "apps/web/lib/map*"]
+alwaysApply: false
+---
+
+# Map architecture — Mapbox GL JS v3
+
+## Persistent map (core decision)
+- ONE Mapbox instance, created in the `(app)` layout (`MapCanvas` component), never unmounted on route change. Routes and components change map STATE (camera, layers, filters) via `mapStore` and imperative helpers — they never create their own map.
+- Wrap the raw map in `lib/map/controller.ts`: `flyToPin(pin)`, `fitChapter(bounds)`, `setTimeFilter(range)`, `setActivePin(id)`. Components call the controller, not `map.` directly.
+
+## Rendering rules
+- Pins and trails are NATIVE layers (GeoJSON sources + circle/line layers), never DOM markers. Clustering via `cluster: true` on the source.
+- Pin style: 12px circle in chapter color + 2px ring of night-850; active pin 16px + pulse (animated paint property). Non-exact locations (`location_exact=false`): render a translucent zone circle (~radius by zoom), not a point.
+- Trail: line 2.5px in chapter color; flight segments dashed `[6,4]`; draw-on animation via line-dasharray/line-gradient after camera settles.
+- Update data with `source.setData()`, keep GeoJSON building pure and memoized (`lib/map/geojson.ts`).
+
+## Camera & sync
+- flyTo 600–900ms, curve 1.4; debounce timeline-scroll-driven flights (250ms). `prefers-reduced-motion` → `jumpTo`.
+- Map style: token `NEXT_PUBLIC_MAPBOX_STYLE` (custom `imprint-night`); fallback `mapbox://styles/mapbox/dark-v11`. Globe projection at low zoom.
+- Viewport-driven data: on `moveend`, update bbox in `mapStore`, queries key off the debounced bbox.
+
+## Cleanup & perf
+- All event listeners registered through the controller and removed on layout unmount. No listener leaks on hot reload.
+- Never store the map instance in React state; keep it in a ref/module singleton exposed via context.

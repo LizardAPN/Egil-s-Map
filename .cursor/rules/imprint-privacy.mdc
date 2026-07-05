@@ -1,0 +1,16 @@
+---
+description: Imprint privacy — non-negotiable rules. Always applies.
+alwaysApply: true
+---
+
+# Privacy rules (NON-NEGOTIABLE)
+
+1. Every new table in `supabase/migrations` MUST have RLS enabled and policies in the same migration. No exceptions, including "temporary" tables.
+2. Everything user-generated defaults to `visibility = 'private'`.
+3. Other users' pins are read ONLY through the `pins_visible` view — never from `memory_pins` directly. When `location_exact === false`, the UI must render an approximate zone (circle ~1–2 km), never a precise point.
+4. Never expose precise coordinates of `friends`-visibility pins to anyone but the owner — not in API responses, not in OG images, not in logs.
+5. `unlisted` content is accessible by link but must never appear in feeds, discovery, search, sitemaps, or OG-indexable lists.
+6. Media files live in the private `media` bucket under `{user_id}/...`; access only via signed URLs issued after a visibility check. Never make the bucket public.
+7. No permanent movement tracking. Only user-created events exist.
+8. Data export and full account deletion are first-class features; never write code that makes deletion incomplete (orphaned media, etc. — rely on cascades and storage cleanup).
+9. Never log coordinates, tokens, or media URLs.

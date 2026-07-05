@@ -1,0 +1,34 @@
+---
+description: Imprint core — product, stack, conventions. Always applies.
+alwaysApply: true
+---
+
+You are building **Imprint** — a personal life diary on a map with light social features. Web-first (Next.js), mobile comes later. The MAP is the primary UI; everything else is thin layers on top of it.
+
+Source-of-truth docs (read them when task touches the area):
+- `docs/PRODUCT.md` — scope, entities, privacy rules
+- `docs/DESIGN.md` — design tokens, typography, motion, screens
+- `docs/ARCHITECTURE.md` — data model, frontend architecture, epics
+
+## Domain model (short)
+- **Pin** = a memory anchored to a map point: title, body, media, `pinnedAt` (event date ≠ createdAt), visibility.
+- **Chapter** = collection of pins (a life period), has color + slug; profile is built from chapters.
+- **Trail** = the route of a chapter: auto-built from pin chronology, or custom-edited (waypoints, segment styles).
+- **Visibility** everywhere: `'private' | 'friends' | 'unlisted' | 'public'`. Private is ALWAYS the default. Friends = mutual follow.
+
+## Stack
+- Monorepo: Turborepo + pnpm workspaces. `apps/web` (Next.js 15 App Router, React 19), `packages/{types,api,ui}`, `supabase/`.
+- TypeScript strict. `any` is forbidden. No class components. Named exports preferred.
+- Styling: Tailwind CSS v4 with tokens from `packages/ui` (see design-system rule).
+- Data: Supabase (Postgres + PostGIS + Auth + Storage). TanStack Query v5 for server state, Zustand for ephemeral UI state.
+- Maps: Mapbox GL JS v3.
+
+## Conventions
+- Coordinates in app code: `{ lng: number; lat: number }` (GeoJSON order lng,lat when arrays).
+- Timestamps: ISO 8601 UTC strings in app code.
+- DB is snake_case, app is camelCase — conversion happens ONLY in `packages/api` mappers.
+- Components never call `.from('table')` directly — only typed functions from `@imprint/api`.
+- URL is the source of truth for shareable state (`?pin=`, `?chapter=`, `?t=`). Zustand only for ephemeral state.
+- Every list/screen implements empty, loading (skeleton), and error states.
+- After each task run `pnpm typecheck && pnpm lint` and fix all issues before finishing.
+- Commit messages: conventional commits (`feat:`, `fix:`, `chore:`), English.

@@ -1,0 +1,39 @@
+---
+description: Imprint design system (Dark Atlas) — apply when writing UI in apps/web or packages/ui
+globs: ["apps/web/**", "packages/ui/**"]
+alwaysApply: false
+---
+
+# Design system — Dark Atlas
+
+Full spec: `docs/DESIGN.md`. Dark theme is the ONLY theme in v1.
+
+## Tokens (use Tailwind classes generated from these; never hardcode hex in components)
+- Backgrounds: `night-950 #070B16` (page) · `night-900 #0A0F1E` (app bg) · `night-850 #0C1226` (map base) · `night-800 #131A30` (cards/sheets) · `night-700 #1E2A4E` (raised/hover) · `night-600 #26304F` · `night-500 #3D486E`
+- Borders: `line-subtle #1C2440` · `line #2A3358` · `line-strong #3D486E`
+- Text: `ink-primary #F0F3FC` · `ink-body #DEE4F5` · `ink-secondary #8B93B0` · `ink-muted #5A648A` · `ink-cream #F7F1E3` (serif headings)
+- Accent (the ONLY system accent): `amber #EFB65A` · hover `#F2C879` · pressed `#B87F2A` · text-on-amber `#41290A`
+- Chapter palette (user colors): amber #EFB65A, teal #5DCAA5, coral #F0997B, lime #A8D080, sky #7FB3F0, lilac #AFA9EC, rose #ED93B1, ice #8FD8E8
+- Semantic: success #5DCAA5 · danger #E2726E · warning #EFB65A · info #7FB3F0
+
+## Typography
+- UI/body: Inter (weights 400, 500 only — never 600+). Story body text: 14–16px, line-height 1.75.
+- Display (chapter titles, hero): Fraunces, color `ink-cream`.
+- Mono (dates on slider, coordinates, stats): JetBrains Mono.
+- Overlines: 11px, tracking 0.12em. Sentence case in all UI labels/buttons.
+
+## Surfaces & geometry
+- Depth = background level + border, not shadows. Shadows only for elements floating over the map: `0 8px 24px rgb(0 0 0 / .35)`.
+- Overlays on map: bg night-900/90 + backdrop-blur (the only place blur is allowed).
+- Radii: controls 8px, cards 10px, sheets 12px, pills full.
+- Story content column: max-width 640px centered.
+
+## Motion
+- Camera flights 600–900ms; card/sheet enter: translateY(12px)+fade 250ms ease-out; hover transitions 150ms.
+- Trail draw-on ~1200ms after camera lands. Active pin pulses (1.8s loop); only the active one.
+- Respect `prefers-reduced-motion`: jumpTo instead of flyTo, no pulses.
+
+## Components
+- Use/extend `packages/ui` primitives (Button, Sheet, Card, Pill, Slider, Skeleton, EmptyState...). Don't restyle ad hoc in pages.
+- Icons: Tabler Icons (outline). No emoji in UI.
+- Empty states are invitations with a verb CTA, not apologies.

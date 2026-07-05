@@ -1,0 +1,28 @@
+---
+description: Supabase data layer rules — apply for packages/api, packages/types, supabase/
+globs: ["packages/api/**", "packages/types/**", "supabase/**"]
+alwaysApply: false
+---
+
+# Data layer — Supabase
+
+## Migrations
+- One change = one timestamped migration in `supabase/migrations`. Never edit an applied migration.
+- Every table: RLS enabled + policies + indexes in the same file. Geography columns get GIST indexes.
+- Visibility checks reuse helpers `public.can_view(owner_id, visibility)` / `public.is_mutual_follow` from `0001_init.sql`.
+- After schema changes run `pnpm gen:types` (wraps `supabase gen types typescript --local > packages/types/src/database.ts`).
+
+## packages/api structure
+- `src/supabase/client.ts` (browser, `@supabase/ssr`), `src/supabase/server.ts` (cookies), `src/supabase/env.ts`.
+- One module per domain: `pins.ts`, `chapters.ts`, `trails.ts`, `media.ts`, `social.ts`, `profile.ts`.
+- Every function: explicit input/output types from `@imprint/types`; mappers convert DB rows (snake_case, WKB/GeoJSON geography) → domain types (camelCase, `{lng,lat}`). Mappers live in `src/mappers.ts` and have unit tests (Vitest).
+- Errors: throw typed `ApiError` with a code; never swallow Supabase errors silently.
+
+## Query rules
+- Reading someone else's pins: ONLY the `pins_visible` view. Own pins for editing may use `memory_pins`.
+- Bounds queries: pass bbox, filter with PostGIS on the server (RPC if PostgREST operators are not enough), never fetch-all-then-filter on the client.
+- Lists are paginated (keyset by `pinned_at, id`), default page 50.
+- TanStack Query keys are arrays with stable serialization: `['pins', {bbox, chapterId, from, to}]`. Mutations invalidate the narrowest keys possible and use optimistic updates for create-pin and reactions.
+
+## Storage
+- Bucket `media` (private). Path: `{user_id}/{pin_id}/{uuid}.webp`. Policies: users write only under their own `{user_id}/` prefix. Reads via signed URLs from `media.getSignedUrls(pinId)` which relies on RLS of `pin_media`.
