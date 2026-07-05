@@ -662,6 +662,10 @@ export type Database = {
         Args: { p: Database["public"]["Tables"]["memory_pins"]["Row"] }
         Returns: boolean
       }
+      get_my_pin_location: {
+        Args: { pin_id: string }
+        Returns: Json
+      }
       disablelongtransactions: { Args: never; Returns: string }
       dropgeometrycolumn:
         | {
