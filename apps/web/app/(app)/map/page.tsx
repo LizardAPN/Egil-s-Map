@@ -1,52 +1,40 @@
 "use client";
 
-import "mapbox-gl/dist/mapbox-gl.css";
-
 import { Suspense, useEffect } from "react";
-import { useSearchParams } from "next/navigation";
 
-import { createBrowserClient, getMyPinById } from "@imprint/api";
-
-import { MapController } from "../../../lib/map/controller";
+import { useChapterColors } from "../../../hooks/use-chapter-colors";
+import { useMapPinSync } from "../../../hooks/use-map-pin-sync";
+import { usePinsInView } from "../../../hooks/use-pins-in-view";
+import { useMapController } from "../../../components/map/MapCanvas";
+import { PinsFetchIndicator } from "../../../components/map/PinsFetchIndicator";
+import { pinsToFeatureCollection } from "../../../lib/map/geojson";
 import { useMapStore } from "../../../stores/map-store";
 
-function MapPinFlyTo() {
-  const searchParams = useSearchParams();
-  const pinId = searchParams.get("pin");
+function MapPinsLayer() {
+  const controller = useMapController();
+  const { data: pins, isFetching } = usePinsInView();
+  const chapterColors = useChapterColors();
   const isMapReady = useMapStore((state) => state.isMapReady);
 
+  useMapPinSync();
+
   useEffect(() => {
-    if (!pinId || !isMapReady) {
+    if (!controller || !pins || !isMapReady) {
       return;
     }
 
-    const controller = MapController.getInstance();
+    controller.setPinsData(
+      pinsToFeatureCollection(pins, null, chapterColors),
+    );
+  }, [pins, chapterColors, controller, isMapReady]);
 
-    if (!controller) {
-      return;
-    }
-
-    let cancelled = false;
-    const supabase = createBrowserClient();
-
-    void getMyPinById(supabase, pinId).then((pin) => {
-      if (!cancelled && pin) {
-        controller.flyToPin(pin.location);
-      }
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [pinId, isMapReady]);
-
-  return null;
+  return <PinsFetchIndicator fetching={isFetching} />;
 }
 
 export default function MapPage() {
   return (
     <Suspense fallback={null}>
-      <MapPinFlyTo />
+      <MapPinsLayer />
     </Suspense>
   );
 }
