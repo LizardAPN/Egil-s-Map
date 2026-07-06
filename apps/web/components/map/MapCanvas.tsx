@@ -94,7 +94,7 @@ export function MapCanvas() {
   return (
     <>
       <div className="fixed inset-0 z-0">
-        <div ref={containerRef} className="h-full w-full" aria-hidden />
+        <div ref={containerRef} className="imprint-map h-full w-full" aria-hidden />
       </div>
     </>
   );

@@ -1,5 +1,13 @@
 export { Button, buttonVariants, type ButtonProps } from "./components/button";
 export { Card, type CardProps } from "./components/card";
+export {
+  DatePicker,
+  dateTimeToIso,
+  formatDateTimeDisplay,
+  nowDateTimeValue,
+  type DatePickerProps,
+  type DateTimeValue,
+} from "./components/date-picker";
 export { Dialog, type DialogProps } from "./components/dialog";
 export { EmptyState, type EmptyStateProps } from "./components/empty-state";
 export { Input, type InputProps } from "./components/input";

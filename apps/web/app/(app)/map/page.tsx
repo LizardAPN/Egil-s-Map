@@ -2,10 +2,13 @@
 
 import { Suspense, useEffect } from "react";
 
+import { Toaster } from "@imprint/ui";
+
 import { useChapterColors } from "../../../hooks/use-chapter-colors";
 import { useMapPinSync } from "../../../hooks/use-map-pin-sync";
 import { usePinsInView } from "../../../hooks/use-pins-in-view";
 import { useMapController } from "../../../components/map/MapCanvas";
+import { MapCreatePinUi } from "../../../components/map/MapCreatePinUi";
 import { PinsFetchIndicator } from "../../../components/map/PinsFetchIndicator";
 import { pinsToFeatureCollection } from "../../../lib/map/geojson";
 import { useMapStore } from "../../../stores/map-store";
@@ -35,6 +38,8 @@ export default function MapPage() {
   return (
     <Suspense fallback={null}>
       <MapPinsLayer />
+      <MapCreatePinUi />
+      <Toaster />
     </Suspense>
   );
 }

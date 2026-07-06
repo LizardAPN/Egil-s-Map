@@ -1,14 +1,21 @@
 export { createChapter, listMine as listMyChapters } from "./chapters";
 export { ApiError, toApiError } from "./errors";
 export {
+  forwardGeocode,
+  reverseGeocode,
+  type GeocodeResult,
+} from "./geocoding";
+export {
   bboxToRpcArgs,
   locationToWkt,
   mapChapterRow,
   mapPinDetailRow,
   mapPinRow,
+  mapUserPreferencesRow,
   mapUserRow,
   type UserProfile,
 } from "./mappers";
+export { getMyPreferences } from "./preferences";
 export {
   createPin,
   deletePin,
@@ -40,4 +47,5 @@ export type {
   PinListItem,
   PinLocation,
   UpdatePinInput,
+  UserPreferences,
 } from "@imprint/types";

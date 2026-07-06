@@ -71,6 +71,10 @@ export interface UpdatePinInput {
   location?: PinLocation;
 }
 
+export interface UserPreferences {
+  defaultPinVisibility: Visibility;
+}
+
 /** Geographic bounding box: [west, south, east, north] in degrees */
 export type Bbox = readonly [
   west: number,

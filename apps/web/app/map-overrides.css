@@ -1,0 +1,8 @@
+/* Mapbox control overrides — import after mapbox-gl.css */
+
+.imprint-map .mapboxgl-ctrl-logo,
+.imprint-map .mapboxgl-ctrl-attrib,
+.imprint-map .mapboxgl-ctrl-attrib-button {
+  filter: grayscale(1) brightness(1.75) contrast(0.85);
+  opacity: 0.55;
+}

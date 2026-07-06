@@ -5,6 +5,7 @@ import type {
   Pin,
   PinListItem,
   Tables,
+  UserPreferences,
   Visibility,
 } from "@imprint/types";
 
@@ -116,5 +117,16 @@ export function mapChapterRow(row: ChapterRow): Chapter {
     position: row.position,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+  };
+}
+
+export type UserPreferencesRow = Pick<
+  Tables<"user_preferences">,
+  "user_id" | "default_pin_visibility" | "settings" | "updated_at"
+>;
+
+export function mapUserPreferencesRow(row: UserPreferencesRow): UserPreferences {
+  return {
+    defaultPinVisibility: row.default_pin_visibility as Visibility,
   };
 }

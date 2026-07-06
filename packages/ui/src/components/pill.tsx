@@ -2,16 +2,31 @@
 
 import { cn } from "../lib/cn";
 
-export interface PillProps extends React.HTMLAttributes<HTMLSpanElement> {
+export interface PillProps extends React.HTMLAttributes<HTMLButtonElement> {
   label: string;
   color?: string;
+  selected?: boolean;
+  as?: "span" | "button";
 }
 
-export function Pill({ label, color, className, ...props }: PillProps) {
+export function Pill({
+  label,
+  color,
+  selected = false,
+  as = "span",
+  className,
+  ...props
+}: PillProps) {
+  const Component = as === "button" ? "button" : "span";
+
   return (
-    <span
+    <Component
+      type={as === "button" ? "button" : undefined}
       className={cn(
-        "inline-flex items-center gap-2 rounded-full border border-line bg-night-800 px-3 py-1 text-sm text-ink-secondary",
+        "inline-flex shrink-0 items-center gap-2 rounded-full border px-3 py-1 text-sm transition-colors",
+        selected
+          ? "border-amber bg-night-700 text-ink-primary"
+          : "border-line bg-night-800 text-ink-secondary hover:border-line-strong",
         className,
       )}
       {...props}
@@ -24,6 +39,6 @@ export function Pill({ label, color, className, ...props }: PillProps) {
         />
       ) : null}
       {label}
-    </span>
+    </Component>
   );
 }

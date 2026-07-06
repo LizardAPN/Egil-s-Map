@@ -16,6 +16,8 @@ const INTERACTIVE_LAYERS = [
   CLUSTERS_LAYER_ID,
 ] as const;
 
+export const INTERACTIVE_PIN_LAYERS = INTERACTIVE_LAYERS;
+
 const EMPTY_FC: FeatureCollection<Point, PinFeatureProperties> = {
   type: "FeatureCollection",
   features: [],
@@ -38,6 +40,7 @@ export interface PinLayerController {
     lngLat: mapboxgl.LngLat,
   ) => void;
   getHandlers: () => PinInteractionHandlers | null;
+  isInCreateMode: () => boolean;
 }
 
 function resolveTextFont(map: mapboxgl.Map): string[] {
@@ -198,6 +201,10 @@ export function registerPinLayers(
   const getHandlers = () => controller.getHandlers();
 
   const handleMouseMove = (event: mapboxgl.MapMouseEvent) => {
+    if (controller.isInCreateMode()) {
+      return;
+    }
+
     const feature = event.features?.[0];
 
     if (!feature) {
@@ -219,11 +226,20 @@ export function registerPinLayers(
   };
 
   const handleMouseLeave = () => {
+    if (controller.isInCreateMode()) {
+      map.getCanvas().style.cursor = "crosshair";
+      return;
+    }
+
     map.getCanvas().style.cursor = "";
     controller.setHoveredPin(null);
   };
 
   const handleClick = (event: mapboxgl.MapMouseEvent) => {
+    if (controller.isInCreateMode()) {
+      return;
+    }
+
     const feature = event.features?.[0];
 
     if (!feature) {
@@ -244,6 +260,10 @@ export function registerPinLayers(
   };
 
   const handleMapClick = (event: mapboxgl.MapMouseEvent) => {
+    if (controller.isInCreateMode()) {
+      return;
+    }
+
     const features = map.queryRenderedFeatures(event.point, {
       layers: [...INTERACTIVE_LAYERS],
     });

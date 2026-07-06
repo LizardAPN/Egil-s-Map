@@ -5,10 +5,11 @@ import mapboxgl, {
   type PaddingOptions,
 } from "mapbox-gl";
 
-import type { Bbox } from "@imprint/types";
+import type { Bbox, PinLocation } from "@imprint/types";
 
 import type { PinFeatureProperties } from "./geojson";
 import {
+  INTERACTIVE_PIN_LAYERS,
   PIN_PULSE_LAYER_ID,
   PINS_SOURCE_ID,
   registerPinLayers,
@@ -21,8 +22,23 @@ const INITIAL_CENTER: [number, number] = [15, 50];
 const INITIAL_ZOOM = 3.2;
 const BOUNDS_DEBOUNCE_MS = 300;
 const PULSE_DURATION_MS = 1800;
-
 const NIGHT_950_FOG = "rgb(7, 11, 22)";
+
+// Draft pin marker is the only allowed DOM marker on the persistent map.
+
+type DraftChangeCallback = (location: PinLocation | null) => void;
+
+function createDraftMarkerElement(): HTMLDivElement {
+  const element = document.createElement("div");
+  element.style.width = "14px";
+  element.style.height = "14px";
+  element.style.borderRadius = "50%";
+  element.style.backgroundColor = "#EFB65A";
+  element.style.border = "2px solid #FFFFFF";
+  element.style.boxShadow = "0 2px 8px rgb(0 0 0 / 0.35)";
+  element.style.display = "block";
+  return element;
+}
 
 export interface MapCamera {
   center: [number, number];
@@ -93,6 +109,13 @@ export class MapController {
   private pinInteractionHandlers: PinInteractionHandlers | null = null;
   private pendingPinsData: FeatureCollection<Point, PinFeatureProperties> | null =
     null;
+  private createModeActive = false;
+  private draftLocation: PinLocation | null = null;
+  private draftMarker: mapboxgl.Marker | null = null;
+  private readonly draftChangeCallbacks = new Set<DraftChangeCallback>();
+  private readonly handleCreateModeClick: (event: mapboxgl.MapMouseEvent) => void;
+  private readonly handleContextMenu: (event: mapboxgl.MapMouseEvent) => void;
+  private readonly handleDraftDragEnd: () => void;
 
   private constructor(container: HTMLElement, options?: MapControllerOptions) {
     this.container = container;
@@ -106,11 +129,12 @@ export class MapController {
       zoom: INITIAL_ZOOM,
       projection: "globe",
       attributionControl: false,
+      logoPosition: "bottom-left",
     });
 
     this.map.addControl(
       new mapboxgl.AttributionControl({ compact: true }),
-      "bottom-right",
+      "bottom-left",
     );
 
     this.handleStyleLoad = () => {
@@ -142,9 +166,41 @@ export class MapController {
       }, BOUNDS_DEBOUNCE_MS);
     };
 
+    this.handleCreateModeClick = (event: mapboxgl.MapMouseEvent) => {
+      if (!this.createModeActive) {
+        return;
+      }
+
+      const features = this.map.queryRenderedFeatures(event.point, {
+        layers: [...INTERACTIVE_PIN_LAYERS],
+      });
+
+      if (features.length > 0) {
+        return;
+      }
+
+      this.moveDraft({ lng: event.lngLat.lng, lat: event.lngLat.lat });
+    };
+
+    this.handleContextMenu = (event: mapboxgl.MapMouseEvent) => {
+      event.preventDefault();
+      this.enterCreateMode({ lng: event.lngLat.lng, lat: event.lngLat.lat });
+    };
+
+    this.handleDraftDragEnd = () => {
+      const lngLat = this.draftMarker?.getLngLat();
+
+      if (!lngLat) {
+        return;
+      }
+
+      this.setDraftLocation({ lng: lngLat.lng, lat: lngLat.lat });
+    };
+
     this.map.on("style.load", this.handleStyleLoad);
     this.map.on("load", this.handleLoad);
     this.map.on("moveend", this.handleMoveEnd);
+    this.map.on("contextmenu", this.handleContextMenu);
   }
 
   static create(
@@ -215,6 +271,7 @@ export class MapController {
           this.expandCluster(feature, lngLat);
         },
         getHandlers: () => this.pinInteractionHandlers,
+        isInCreateMode: () => this.createModeActive,
       });
 
       this.pinsLayersRegistered = true;
@@ -248,6 +305,63 @@ export class MapController {
 
   setPinInteractionHandlers(handlers: PinInteractionHandlers): void {
     this.pinInteractionHandlers = handlers;
+  }
+
+  enterCreateMode(initial?: PinLocation): void {
+    if (!this.createModeActive) {
+      this.createModeActive = true;
+      this.map.getCanvas().style.cursor = "crosshair";
+      this.map.on("click", this.handleCreateModeClick);
+    }
+
+    if (initial) {
+      this.moveDraft(initial);
+    }
+  }
+
+  exitCreateMode(): void {
+    if (!this.createModeActive) {
+      return;
+    }
+
+    this.createModeActive = false;
+    this.map.getCanvas().style.cursor = "";
+    this.map.off("click", this.handleCreateModeClick);
+    this.draftMarker?.remove();
+    this.draftMarker = null;
+    this.setDraftLocation(null);
+  }
+
+  moveDraft(location: PinLocation): void {
+    if (!this.draftMarker) {
+      this.draftMarker = new mapboxgl.Marker({
+        element: createDraftMarkerElement(),
+        anchor: "center",
+        draggable: true,
+      });
+
+      this.draftMarker.on("dragend", this.handleDraftDragEnd);
+    }
+
+    this.draftMarker.setLngLat([location.lng, location.lat]).addTo(this.map);
+    this.setDraftLocation(location);
+  }
+
+  isInCreateMode(): boolean {
+    return this.createModeActive;
+  }
+
+  getDraftLocation(): PinLocation | null {
+    return this.draftLocation;
+  }
+
+  onDraftChange(callback: DraftChangeCallback): () => void {
+    this.draftChangeCallbacks.add(callback);
+    callback(this.draftLocation);
+
+    return () => {
+      this.draftChangeCallbacks.delete(callback);
+    };
   }
 
   setHoveredPin(id: string | null): void {
@@ -383,6 +497,7 @@ export class MapController {
   }
 
   destroy(): void {
+    this.exitCreateMode();
     this.stopPulseAnimation();
 
     if (this.boundsDebounceTimer !== null) {
@@ -397,6 +512,7 @@ export class MapController {
     this.map.off("style.load", this.handleStyleLoad);
     this.map.off("load", this.handleLoad);
     this.map.off("moveend", this.handleMoveEnd);
+    this.map.off("contextmenu", this.handleContextMenu);
 
     this.readyCallbacks.clear();
     this.boundsChangedCallbacks.clear();
@@ -529,6 +645,13 @@ export class MapController {
 
     this.boundsChangedCallbacks.forEach((callback) => {
       callback(payload);
+    });
+  }
+
+  private setDraftLocation(location: PinLocation | null): void {
+    this.draftLocation = location;
+    this.draftChangeCallbacks.forEach((callback) => {
+      callback(location);
     });
   }
 }

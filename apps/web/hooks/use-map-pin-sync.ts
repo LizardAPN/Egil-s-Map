@@ -97,6 +97,10 @@ export function useMapPinSync(): void {
         setActivePin(pinId);
       },
       onMapClick: () => {
+        if (controller.isInCreateMode()) {
+          return;
+        }
+
         setActivePin(null);
       },
     });

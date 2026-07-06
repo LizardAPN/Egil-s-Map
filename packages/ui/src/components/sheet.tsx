@@ -11,6 +11,7 @@ export interface SheetProps {
   onOpenChange: (open: boolean) => void;
   title: string;
   side?: "right" | "bottom";
+  blocking?: boolean;
   children: ReactNode;
 }
 
@@ -19,23 +20,27 @@ export function Sheet({
   onOpenChange,
   title,
   side = "right",
+  blocking = true,
   children,
 }: SheetProps) {
   const isRight = side === "right";
 
   return (
-    <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
+    <DialogPrimitive.Root open={open} onOpenChange={onOpenChange} modal={blocking}>
       <DialogPrimitive.Portal>
-        <DialogPrimitive.Overlay
-          className={cn(
-            "fixed inset-0 z-50 bg-night-950/60",
-            "data-[state=open]:animate-overlay-enter data-[state=closed]:animate-overlay-exit",
-            "motion-reduce:data-[state=open]:animate-none motion-reduce:data-[state=closed]:animate-none motion-reduce:opacity-100",
-          )}
-        />
+        {blocking ? (
+          <DialogPrimitive.Overlay
+            className={cn(
+              "fixed inset-0 z-50 bg-night-950/60",
+              "data-[state=open]:animate-overlay-enter data-[state=closed]:animate-overlay-exit",
+              "motion-reduce:data-[state=open]:animate-none motion-reduce:data-[state=closed]:animate-none motion-reduce:opacity-100",
+            )}
+          />
+        ) : null}
         <DialogPrimitive.Content
           className={cn(
             "fixed z-50 flex flex-col border-line bg-night-800 shadow-float focus:outline-none",
+            !blocking && "pointer-events-auto",
             isRight
               ? [
                   "inset-y-0 right-0 h-full w-[400px] border-l rounded-l-sheet",

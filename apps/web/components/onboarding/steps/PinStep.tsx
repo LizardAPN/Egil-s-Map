@@ -4,17 +4,16 @@ import { useState } from "react";
 
 import { createBrowserClient, createPin } from "@imprint/api";
 import type { PinLocation } from "@imprint/types";
-import { Button, Input } from "@imprint/ui";
+import {
+  Button,
+  DatePicker,
+  dateTimeToIso,
+  Input,
+  nowDateTimeValue,
+  type DateTimeValue,
+} from "@imprint/ui";
 
 import { OnboardingMiniMap } from "../OnboardingMiniMap";
-
-function todayIsoDate(): string {
-  return new Date().toISOString().slice(0, 10);
-}
-
-function dateToPinnedAt(date: string): string {
-  return `${date}T12:00:00.000Z`;
-}
 
 export function PinStep({
   chapterId,
@@ -27,7 +26,7 @@ export function PinStep({
 }) {
   const [location, setLocation] = useState<PinLocation | null>(null);
   const [title, setTitle] = useState("");
-  const [pinnedDate, setPinnedDate] = useState(todayIsoDate);
+  const [pinnedDate, setPinnedDate] = useState<DateTimeValue>(nowDateTimeValue);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -48,7 +47,7 @@ export function PinStep({
         location,
         title: title.trim(),
         visibility: "private",
-        pinnedAt: dateToPinnedAt(pinnedDate),
+        pinnedAt: dateTimeToIso(pinnedDate),
       });
       await onFinish(pin.id);
     } catch {
@@ -109,14 +108,10 @@ export function PinStep({
           <label htmlFor="pin-date" className="text-sm text-ink-secondary">
             Дата
           </label>
-          <input
+          <DatePicker
             id="pin-date"
-            type="date"
             value={pinnedDate}
-            onChange={(event) => {
-              setPinnedDate(event.target.value);
-            }}
-            className="h-10 w-full rounded-control border border-line bg-night-800 px-3 text-sm text-ink-primary focus:border-line-strong focus:outline-none focus:ring-1 focus:ring-amber/25"
+            onChange={setPinnedDate}
           />
         </div>
       </div>
