@@ -4,12 +4,6 @@ import { IconMapPin } from "@tabler/icons-react";
 import { useState } from "react";
 
 import {
-  createBrowserClient,
-  getById,
-  listInBounds,
-  WORLD_BBOX,
-} from "@imprint/api";
-import {
   Button,
   Card,
   Dialog,
@@ -26,15 +20,6 @@ import {
 } from "@imprint/ui";
 
 import { CHAPTER_COLORS } from "../../../lib/chapter-colors";
-
-const DEMO_PRIVATE_PIN_ID = "00000000-0000-0000-0000-000000000106";
-
-interface PinProbeItem {
-  id: string;
-  title: string;
-  visibility: string;
-  locationExact: boolean;
-}
 
 function Section({
   title,
@@ -57,52 +42,6 @@ export default function DevUiPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [monthValue, setMonthValue] = useState<MonthValue | null>(null);
   const [boundedMonth, setBoundedMonth] = useState<MonthValue | null>(null);
-  const [pinProbe, setPinProbe] = useState<PinProbeItem[] | null>(null);
-  const [pinProbeLoading, setPinProbeLoading] = useState(false);
-  const [privatePinProbe, setPrivatePinProbe] = useState<string | null>(null);
-  const [privatePinLoading, setPrivatePinLoading] = useState(false);
-
-  async function runPinProbe() {
-    setPinProbeLoading(true);
-    try {
-      const supabase = createBrowserClient();
-      const pins = await listInBounds(supabase, { bbox: WORLD_BBOX });
-      setPinProbe(
-        pins.map((pin) => ({
-          id: pin.id,
-          title: pin.title,
-          visibility: pin.visibility,
-          locationExact: pin.locationExact,
-        })),
-      );
-    } catch (error) {
-      setPinProbe([
-        {
-          id: "error",
-          title: error instanceof Error ? error.message : "Probe failed",
-          visibility: "error",
-          locationExact: false,
-        },
-      ]);
-    } finally {
-      setPinProbeLoading(false);
-    }
-  }
-
-  async function runPrivatePinProbe() {
-    setPrivatePinLoading(true);
-    try {
-      const supabase = createBrowserClient();
-      const pin = await getById(supabase, DEMO_PRIVATE_PIN_ID);
-      setPrivatePinProbe(pin === null ? "null (RLS blocked)" : pin.body ?? "(empty body)");
-    } catch (error) {
-      setPrivatePinProbe(
-        error instanceof Error ? error.message : "Probe failed",
-      );
-    } finally {
-      setPrivatePinLoading(false);
-    }
-  }
 
   return (
     <div className="min-h-screen space-y-16 bg-night-900 p-8">
@@ -327,39 +266,6 @@ export default function DevUiPage() {
         >
           Show toast
         </Button>
-      </Section>
-
-      <Section title="API probe (dev only — remove P2.2)">
-        <p className="text-sm text-ink-secondary">
-          Calls listInBounds (world bbox) and getById for demo private pin
-          ...106. Log in as demo@imprint.dev vs a fresh test user to verify RLS.
-        </p>
-        <div className="flex flex-wrap gap-3">
-          <Button
-            variant="secondary"
-            loading={pinProbeLoading}
-            onClick={() => void runPinProbe()}
-          >
-            Probe listInBounds
-          </Button>
-          <Button
-            variant="secondary"
-            loading={privatePinLoading}
-            onClick={() => void runPrivatePinProbe()}
-          >
-            Probe pin_by_id (private)
-          </Button>
-        </div>
-        {pinProbe !== null ? (
-          <pre className="max-h-96 overflow-auto rounded-card border border-night-700 bg-night-800 p-4 font-mono text-xs text-ink-body">
-            {JSON.stringify(pinProbe, null, 2)}
-          </pre>
-        ) : null}
-        {privatePinProbe !== null ? (
-          <p className="font-mono text-sm text-ink-secondary">
-            pin_by_id ...106: {privatePinProbe}
-          </p>
-        ) : null}
       </Section>
 
       <Toaster />
