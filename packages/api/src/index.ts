@@ -1,4 +1,4 @@
-export { createChapter } from "./chapters";
+export { createChapter, listMine as listMyChapters } from "./chapters";
 export { ApiError, toApiError } from "./errors";
 export {
   bboxToRpcArgs,
