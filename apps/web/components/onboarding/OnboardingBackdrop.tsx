@@ -21,7 +21,7 @@ export function OnboardingBackdrop() {
           cx={dot.x}
           cy={dot.y}
           r={dot.isAmber ? 4 : 3}
-          className={dot.isAmber ? "fill-amber/60" : "fill-ink-muted/20"}
+          fill={dot.isAmber ? "rgba(239, 182, 90, 0.6)" : "rgba(90, 100, 138, 0.2)"}
         />
       ))}
     </svg>

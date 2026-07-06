@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -7,8 +8,15 @@ import { createBrowserClient, updateMyProfile } from "@imprint/api";
 
 import { OnboardingShell } from "../../components/onboarding/OnboardingShell";
 import { ChapterStep } from "../../components/onboarding/steps/ChapterStep";
-import { PinStep } from "../../components/onboarding/steps/PinStep";
 import { ProfileStep } from "../../components/onboarding/steps/ProfileStep";
+
+const PinStep = dynamic(
+  () =>
+    import("../../components/onboarding/steps/PinStep").then(
+      (module) => module.PinStep,
+    ),
+  { ssr: false },
+);
 
 export default function OnboardingPage() {
   const router = useRouter();

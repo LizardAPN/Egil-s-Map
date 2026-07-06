@@ -3,7 +3,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useRef } from "react";
 
-import { createBrowserClient, createPin } from "@imprint/api";
+import { createBrowserClient, createPin, uploadPinMedia } from "@imprint/api";
 import type { CreatePinInput, PinListItem } from "@imprint/types";
 import { toast } from "@imprint/ui";
 
@@ -13,10 +13,46 @@ import { pinKeys } from "../lib/pin-keys";
 import { useEditorStore } from "../stores/editor-store";
 import { useMapStore } from "../stores/map-store";
 
+export interface CreatePinMutationInput extends CreatePinInput {
+  stagedFiles?: File[];
+}
+
 interface CreatePinContext {
   previousQueries: Array<[readonly unknown[], PinListItem[] | undefined]>;
   tempId: string;
   queryKey: ReturnType<typeof pinKeys.bounds>;
+}
+
+async function uploadStagedPhotos(pinId: string, files: File[], startIndex = 0) {
+  if (files.length === 0 || startIndex >= files.length) {
+    return;
+  }
+
+  const remaining = files.slice(startIndex);
+  const supabase = createBrowserClient();
+  let toastId: string | number | undefined;
+  let failedAt = startIndex;
+
+  try {
+    await uploadPinMedia(supabase, pinId, remaining, (progress) => {
+      const absoluteIndex = startIndex + progress.index + 1;
+      toastId = toast(`Загружаю фото… ${String(absoluteIndex)}/${String(files.length)}`, {
+        id: toastId,
+      });
+      failedAt = startIndex + progress.index;
+    });
+    toast.success("Фото добавлены", { id: toastId });
+  } catch {
+    toast.error("Не удалось загрузить фото", {
+      id: toastId,
+      action: {
+        label: "Повторить",
+        onClick: () => {
+          void uploadStagedPhotos(pinId, files, failedAt);
+        },
+      },
+    });
+  }
 }
 
 export function useCreatePin() {
@@ -36,12 +72,21 @@ export function useCreatePin() {
   }, [bbox, zoom]);
 
   const queryKey = pinKeys.bounds(queryBbox);
-  const retryRef = useRef<(input: CreatePinInput) => void>(() => undefined);
+  const retryRef = useRef<(input: CreatePinMutationInput) => void>(() => undefined);
 
   const mutation = useMutation({
-    mutationFn: async (input: CreatePinInput) => {
+    mutationFn: async (input: CreatePinMutationInput) => {
+      const pinInput: CreatePinInput = {
+        chapterId: input.chapterId,
+        location: input.location,
+        locationName: input.locationName,
+        title: input.title,
+        body: input.body,
+        visibility: input.visibility,
+        pinnedAt: input.pinnedAt,
+      };
       const supabase = createBrowserClient();
-      return createPin(supabase, input);
+      return createPin(supabase, pinInput);
     },
     onMutate: async (input) => {
       await queryClient.cancelQueries({ queryKey: pinKeys.all });
@@ -78,7 +123,7 @@ export function useCreatePin() {
 
       return { previousQueries, tempId, queryKey } satisfies CreatePinContext;
     },
-    onSuccess: (result, _input, context) => {
+    onSuccess: (result, input, context) => {
       if (!context.tempId) {
         return;
       }
@@ -93,6 +138,12 @@ export function useCreatePin() {
       resetEditor();
       setActivePin(result.id);
       toast("Воспоминание сохранено");
+
+      const stagedFiles = input.stagedFiles ?? [];
+
+      if (stagedFiles.length > 0) {
+        void uploadStagedPhotos(result.id, stagedFiles);
+      }
     },
     onError: (_error, input, context) => {
       if (context?.previousQueries) {

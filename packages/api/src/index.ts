@@ -6,6 +6,20 @@ export {
   type GeocodeResult,
 } from "./geocoding";
 export {
+  buildPinMediaStoragePath,
+  scaleToMaxLongestSide,
+  type PreparedImage,
+  type UploadProgress,
+} from "./media-shared";
+export {
+  deletePinMedia,
+  listPinMedia,
+  reorderPinMedia,
+  removePinStorageFolder,
+  uploadPinMedia,
+} from "./media";
+export { prepareImage } from "./media-prepare";
+export {
   bboxToRpcArgs,
   locationToWkt,
   mapChapterRow,
@@ -46,6 +60,7 @@ export type {
   Pin,
   PinListItem,
   PinLocation,
+  PinMedia,
   UpdatePinInput,
   UserPreferences,
 } from "@imprint/types";

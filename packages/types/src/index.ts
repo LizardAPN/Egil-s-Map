@@ -61,6 +61,17 @@ export interface Pin extends PinListItem {
   body: string | null;
 }
 
+export interface PinMedia {
+  id: string;
+  position: number;
+  url: string;
+  storagePath: string;
+  width: number | null;
+  height: number | null;
+  blurhash: string | null;
+  mediaType: "image" | "video";
+}
+
 export interface UpdatePinInput {
   title?: string;
   body?: string | null;

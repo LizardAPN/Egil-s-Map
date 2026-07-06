@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./env": "./src/supabase/env.ts",
     "./server": "./src/supabase/server.ts"
   },
   "scripts": {
@@ -16,6 +17,7 @@
     "@imprint/types": "workspace:^",
     "@supabase/ssr": "^0.12.0",
     "@supabase/supabase-js": "^2.110.0",
+    "blurhash": "^2.0.5",
     "server-only": "^0.0.1"
   },
   "devDependencies": {

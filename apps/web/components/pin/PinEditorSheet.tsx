@@ -21,10 +21,12 @@ import {
   createBrowserClient,
   forwardGeocode,
   listMyChapters,
+  listPinMedia,
   reverseGeocode,
+  updatePin,
   type GeocodeResult,
 } from "@imprint/api";
-import type { PinLocation, Visibility } from "@imprint/types";
+import type { Pin, PinLocation, Visibility } from "@imprint/types";
 import {
   Button,
   DatePicker,
@@ -36,6 +38,7 @@ import {
   Spinner,
   Textarea,
   cn,
+  toast,
   type DateTimeValue,
 } from "@imprint/ui";
 
@@ -43,6 +46,10 @@ import { useCreatePin } from "../../hooks/use-create-pin";
 import { useMyPreferences } from "../../hooks/use-my-preferences";
 import { useMapController } from "../map/MapCanvas";
 import { useEditorStore } from "../../stores/editor-store";
+import {
+  PinPhotoSection,
+  type PinPhotoSectionHandle,
+} from "./PinPhotoSection";
 
 const VISIBILITY_OPTIONS: Array<{
   value: Visibility;
@@ -80,18 +87,33 @@ function formatCoords(location: PinLocation): string {
   return `${location.lat.toFixed(4)}, ${location.lng.toFixed(4)}`;
 }
 
+function isoToDateTimeValue(iso: string): DateTimeValue {
+  const date = new Date(iso);
+
+  return {
+    year: date.getFullYear(),
+    month: date.getMonth() + 1,
+    day: date.getDate(),
+    hour: date.getHours(),
+    minute: date.getMinutes(),
+  };
+}
+
 export function PinEditorSheet({
   requestExit,
   confirmDialog,
+  existingPin = null,
 }: {
   requestExit: () => void;
   confirmDialog: ReactNode;
+  existingPin?: Pin | null;
 }) {
   const controller = useMapController();
   const draftLocation = useEditorStore((state) => state.draftLocation);
   const setFormDirty = useEditorStore((state) => state.setFormDirty);
   const { data: preferences } = useMyPreferences();
   const createPinMutation = useCreatePin();
+  const isEditMode = existingPin !== null;
 
   const { data: chapters } = useQuery({
     queryKey: ["chapters", "mine"],
@@ -101,7 +123,11 @@ export function PinEditorSheet({
   });
 
   const titleRef = useRef<HTMLInputElement>(null);
+  const photoSectionRef = useRef<PinPhotoSectionHandle>(null);
+  const initializedEditPinRef = useRef<string | null>(null);
   const searchListId = useId();
+
+  const [isSaving, setIsSaving] = useState(false);
 
   const [locationName, setLocationName] = useState("");
   const [reverseLoading, setReverseLoading] = useState(false);
@@ -117,8 +143,35 @@ export function PinEditorSheet({
   const [visibility, setVisibility] = useState<Visibility>("private");
   const [visibilityInitialized, setVisibilityInitialized] = useState(false);
 
+  const { data: pinMedia } = useQuery({
+    queryKey: ["pin-media", existingPin?.id],
+    queryFn: async () => {
+      if (!existingPin) {
+        return [];
+      }
+
+      return listPinMedia(createBrowserClient(), existingPin.id);
+    },
+    enabled: Boolean(existingPin),
+  });
+
   useEffect(() => {
-    if (draftLocation) {
+    if (!existingPin || initializedEditPinRef.current === existingPin.id) {
+      return;
+    }
+
+    initializedEditPinRef.current = existingPin.id;
+    setLocationName(existingPin.locationName ?? "");
+    setTitle(existingPin.title);
+    setBody(existingPin.body ?? "");
+    setPinnedAt(isoToDateTimeValue(existingPin.pinnedAt));
+    setChapterId(existingPin.chapterId);
+    setVisibility(existingPin.visibility);
+    setVisibilityInitialized(true);
+  }, [existingPin]);
+
+  useEffect(() => {
+    if (draftLocation || existingPin) {
       return;
     }
 
@@ -131,7 +184,7 @@ export function PinEditorSheet({
     setChapterId(null);
     setVisibilityInitialized(false);
     setFormDirty(false);
-  }, [draftLocation, setFormDirty]);
+  }, [draftLocation, existingPin, setFormDirty]);
 
   const markDirty = useCallback(() => {
     setFormDirty(true);
@@ -147,7 +200,7 @@ export function PinEditorSheet({
   }, [preferences, visibilityInitialized]);
 
   useEffect(() => {
-    if (!draftLocation) {
+    if (!draftLocation || existingPin?.locationName) {
       return;
     }
 
@@ -173,7 +226,7 @@ export function PinEditorSheet({
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [draftLocation]);
+  }, [draftLocation, existingPin?.locationName]);
 
   useEffect(() => {
     if (!draftLocation) {
@@ -290,9 +343,37 @@ export function PinEditorSheet({
   }
 
   function handleSubmit() {
-    if (!draftLocation || !title.trim() || createPinMutation.isPending) {
+    if (!draftLocation || !title.trim() || createPinMutation.isPending || isSaving) {
       return;
     }
+
+    if (existingPin) {
+      setIsSaving(true);
+
+      void updatePin(createBrowserClient(), existingPin.id, {
+        chapterId,
+        location: draftLocation,
+        locationName: locationName.trim() || null,
+        title: title.trim(),
+        body: body.trim() || null,
+        visibility,
+        pinnedAt: dateTimeToIso(pinnedAt),
+      })
+        .then(() => {
+          toast("Воспоминание сохранено");
+          requestExit();
+        })
+        .catch(() => {
+          toast.error("Не удалось сохранить");
+        })
+        .finally(() => {
+          setIsSaving(false);
+        });
+
+      return;
+    }
+
+    const stagedFiles = photoSectionRef.current?.getStagedFiles() ?? [];
 
     createPinMutation.mutate({
       chapterId,
@@ -302,6 +383,7 @@ export function PinEditorSheet({
       body: body.trim() || null,
       visibility,
       pinnedAt: dateTimeToIso(pinnedAt),
+      stagedFiles,
     });
   }
 
@@ -334,7 +416,7 @@ export function PinEditorSheet({
       <Sheet
         open={draftLocation !== null}
         onOpenChange={handleOpenChange}
-        title="Новое воспоминание"
+        title={isEditMode ? "Редактировать воспоминание" : "Новое воспоминание"}
         blocking={false}
       >
         <div className="flex h-full flex-col gap-6">
@@ -484,6 +566,13 @@ export function PinEditorSheet({
               ) : null}
             </div>
 
+            <PinPhotoSection
+              ref={photoSectionRef}
+              pinId={existingPin?.id ?? null}
+              initialMedia={pinMedia}
+              onDirty={markDirty}
+            />
+
             <div className="space-y-2">
               <span className="text-sm text-ink-secondary">Глава</span>
               <div className="flex gap-2 overflow-x-auto pb-1">
@@ -549,7 +638,7 @@ export function PinEditorSheet({
             <Button
               type="button"
               className="flex-1"
-              loading={createPinMutation.isPending}
+              loading={createPinMutation.isPending || isSaving}
               disabled={!title.trim()}
               onClick={handleSubmit}
             >
@@ -558,7 +647,7 @@ export function PinEditorSheet({
             <Button
               type="button"
               variant="ghost"
-              disabled={createPinMutation.isPending}
+              disabled={createPinMutation.isPending || isSaving}
               onClick={requestExit}
             >
               Отмена

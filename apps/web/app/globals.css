@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @source "../../../packages/ui/src/**/*.{ts,tsx}";
+@source "../**/*.{ts,tsx}";
 @import "@imprint/ui/theme.css";
 
 @layer base {

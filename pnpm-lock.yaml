@@ -59,6 +59,9 @@ importers:
       '@tanstack/react-query':
         specifier: ^5.101.2
         version: 5.101.2(react@19.2.7)
+      blurhash:
+        specifier: ^2.0.5
+        version: 2.0.5
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
@@ -135,6 +138,9 @@ importers:
       '@supabase/supabase-js':
         specifier: ^2.110.0
         version: 2.110.0
+      blurhash:
+        specifier: ^2.0.5
+        version: 2.0.5
       server-only:
         specifier: ^0.0.1
         version: 0.0.1
@@ -1362,6 +1368,9 @@ packages:
   balanced-match@4.0.4:
     resolution: {integrity: sha512-BLrgEcRTwX2o6gGxGOCNyMvGSp35YofuYzw9h1IMTRmKqttAZZVU67bdb9Pr2vUHA8+j3i2tJfjO6C6+4myGTA==}
     engines: {node: 18 || 20 || >=22}
+
+  blurhash@2.0.5:
+    resolution: {integrity: sha512-cRygWd7kGBQO3VEhPiTgq4Wc43ctsM+o46urrmPOiuAe+07fzlSB9OJVdpgDL0jPqXUVQ9ht7aq7kxOeJHRK+w==}
 
   brace-expansion@1.1.15:
     resolution: {integrity: sha512-EwOCDEex4quD37XhqM3omwtMoJjr//isUZz1JopUNWms+4Z2ViyM/k1YIRePpoVNnQhENnxtFjLaxNHrT7xIUg==}
@@ -3162,6 +3171,8 @@ snapshots:
   balanced-match@1.0.2: {}
 
   balanced-match@4.0.4: {}
+
+  blurhash@2.0.5: {}
 
   brace-expansion@1.1.15:
     dependencies:

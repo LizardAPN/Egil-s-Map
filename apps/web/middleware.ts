@@ -1,7 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
 
-import { getSupabaseEnv } from "@imprint/api";
+import { getSupabaseEnv } from "@imprint/api/env";
 import type { Database } from "@imprint/types";
 
 const PROTECTED_PREFIXES = [

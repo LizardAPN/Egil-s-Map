@@ -11,6 +11,7 @@ import type {
 } from "@imprint/types";
 
 import { ApiError, toApiError } from "./errors";
+import { removePinStorageFolder } from "./media";
 import {
   bboxToRpcArgs,
   locationToWkt,
@@ -211,7 +212,9 @@ export async function updatePin(
 }
 
 export async function deletePin(client: PinsClient, id: string): Promise<void> {
-  await requireUser(client);
+  const user = await requireUser(client);
+
+  await removePinStorageFolder(client, user.id, id);
 
   const { error } = await client.from("memory_pins").delete().eq("id", id);
 
