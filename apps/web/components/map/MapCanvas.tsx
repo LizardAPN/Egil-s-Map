@@ -58,6 +58,7 @@ export function MapCanvas() {
 
     const unsubscribeReady = mapController.onReady(() => {
       setReady(true);
+      mapController.initPinLayers();
     });
 
     const resizeObserver = new ResizeObserver(() => {
@@ -99,12 +100,6 @@ export function MapCanvas() {
   );
 }
 
-export function useMapController(): MapController {
-  const controller = useContext(MapControllerContext);
-
-  if (!controller) {
-    throw new Error("useMapController must be used within MapProvider");
-  }
-
-  return controller;
+export function useMapController(): MapController | null {
+  return useContext(MapControllerContext);
 }
