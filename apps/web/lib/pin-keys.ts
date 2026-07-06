@@ -13,6 +13,8 @@ export const pinKeys = {
       filters?.from,
       filters?.to,
     ] as const,
+  mine: (chapterId?: string | null) =>
+    ["pins", "mine", { chapterId: chapterId ?? null }] as const,
   detail: (id: string | null) => ["pin", id] as const,
   media: (id: string | null) => ["pin-media", id] as const,
 };

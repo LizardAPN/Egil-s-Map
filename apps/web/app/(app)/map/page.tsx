@@ -11,6 +11,7 @@ import { useMapController } from "../../../components/map/MapCanvas";
 import { MapCreatePinUi } from "../../../components/map/MapCreatePinUi";
 import { MapPinDetailUi } from "../../../components/map/MapPinDetailUi";
 import { PinsFetchIndicator } from "../../../components/map/PinsFetchIndicator";
+import { TimelinePanel } from "../../../components/timeline/TimelinePanel";
 import { pinsToFeatureCollection } from "../../../lib/map/geojson";
 import { useMapStore } from "../../../stores/map-store";
 
@@ -39,6 +40,7 @@ export default function MapPage() {
   return (
     <Suspense fallback={null}>
       <MapPinsLayer />
+      <TimelinePanel />
       <MapPinDetailUi />
       <MapCreatePinUi />
       <Toaster />

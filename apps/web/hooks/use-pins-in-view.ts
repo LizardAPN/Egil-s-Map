@@ -16,10 +16,18 @@ export interface PinsInViewFilters {
   to?: string;
 }
 
-export function usePinsInView(filters?: PinsInViewFilters) {
+export function usePinsInView() {
   const bbox = useMapStore((state) => state.bbox);
   const zoom = useMapStore((state) => state.zoom);
   const isMapReady = useMapStore((state) => state.isMapReady);
+  const chapterId = useMapStore((state) => state.scope.chapterId);
+
+  const filters = useMemo(
+    (): PinsInViewFilters => ({
+      chapterId: chapterId ?? undefined,
+    }),
+    [chapterId],
+  );
 
   const queryBbox = useMemo((): Bbox | null => {
     if (!bbox) {
@@ -39,9 +47,9 @@ export function usePinsInView(filters?: PinsInViewFilters) {
       const supabase = createBrowserClient();
       return listInBounds(supabase, {
         bbox: queryBbox,
-        chapterId: filters?.chapterId,
-        from: filters?.from,
-        to: filters?.to,
+        chapterId: filters.chapterId,
+        from: filters.from,
+        to: filters.to,
       });
     },
     enabled: isMapReady && queryBbox !== null,

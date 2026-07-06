@@ -7,7 +7,10 @@ import { createBrowserClient, getById } from "@imprint/api";
 import { toast } from "@imprint/ui";
 
 import { useMapController } from "../components/map/MapCanvas";
+import { getTimelineCameraPadding } from "../lib/map/camera-padding";
 import { pinNavigationState } from "../lib/map-pin-navigation";
+import { useSelectPin } from "./use-select-pin";
+import { useTimelineCollapsed } from "./use-timeline-collapsed";
 import { useMapStore } from "../stores/map-store";
 
 export function useCloseActivePin() {
@@ -50,6 +53,8 @@ export function useMapPinSync(): void {
   const setActivePin = useMapStore((state) => state.setActivePin);
   const isMapReady = useMapStore((state) => state.isMapReady);
   const closeActivePin = useCloseActivePin();
+  const selectPin = useSelectPin();
+  const { collapsed } = useTimelineCollapsed();
   const flownPinRef = useRef<string | null>(null);
   const skipStoreToUrlRef = useRef(false);
 
@@ -115,13 +120,15 @@ export function useMapPinSync(): void {
       }
 
       flownPinRef.current = pinParam;
-      controller.flyToPin(pin.location);
+      controller.flyToPin(pin.location, {
+        padding: getTimelineCameraPadding(collapsed),
+      });
     });
 
     return () => {
       cancelled = true;
     };
-  }, [pinParam, isMapReady, controller, pathname, router]);
+  }, [pinParam, isMapReady, controller, pathname, router, collapsed]);
 
   useEffect(() => {
     if (!pinParam) {
@@ -136,17 +143,7 @@ export function useMapPinSync(): void {
 
     controller.setPinInteractionHandlers({
       onPinClick: (pinId) => {
-        if (pinId === pinParam) {
-          return;
-        }
-
-        const params = new URLSearchParams(searchParams.toString());
-        params.set("pin", pinId);
-        pinNavigationState.selectionPushed = true;
-        router.push(
-          params.toString() ? `${pathname}?${params.toString()}` : pathname,
-          { scroll: false },
-        );
+        selectPin(pinId);
       },
       onMapClick: () => {
         if (controller.isInCreateMode() || controller.isInMoveMode()) {
@@ -158,5 +155,5 @@ export function useMapPinSync(): void {
         }
       },
     });
-  }, [controller, pinParam, pathname, router, searchParams, closeActivePin]);
+  }, [controller, pinParam, closeActivePin, selectPin]);
 }

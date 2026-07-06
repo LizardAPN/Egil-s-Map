@@ -51,6 +51,7 @@ export interface FlyToPinOptions {
   zoom?: number;
   duration?: number;
   curve?: number;
+  padding?: PaddingOptions;
 }
 
 export interface BoundsChangedPayload {
@@ -511,7 +512,7 @@ export class MapController {
     const center: [number, number] = [lng, lat];
 
     if (getPrefersReducedMotion()) {
-      this.map.jumpTo({ center, zoom });
+      this.map.jumpTo({ center, zoom, padding: options?.padding });
       return;
     }
 
@@ -520,6 +521,7 @@ export class MapController {
       zoom,
       duration: options?.duration ?? 700,
       curve: options?.curve ?? 1.4,
+      padding: options?.padding,
     });
   }
 

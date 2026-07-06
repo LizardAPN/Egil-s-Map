@@ -1,21 +1,13 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 
-import { createBrowserClient, listMyChapters } from "@imprint/api";
+import { useMyChapters } from "./use-my-chapters";
 
 const EMPTY_COLORS = new Map<string, string>();
 
 export function useChapterColors(): ReadonlyMap<string, string> {
-  const { data: chapters } = useQuery({
-    queryKey: ["chapters", "mine"],
-    queryFn: async () => {
-      const supabase = createBrowserClient();
-      return listMyChapters(supabase);
-    },
-    staleTime: 5 * 60_000,
-  });
+  const { data: chapters } = useMyChapters();
 
   return useMemo(() => {
     if (!chapters) {
