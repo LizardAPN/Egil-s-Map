@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-import type { CreateChapterInput, Database } from "@imprint/types";
+import type { Chapter, CreateChapterInput, Database } from "@imprint/types";
 
 import { ApiError, toApiError } from "./errors";
 import { mapChapterRow, type ChapterRow } from "./mappers";
@@ -77,4 +77,31 @@ export async function createChapter(
   }
 
   throw new ApiError("slug_exhausted", "Could not generate a unique chapter slug");
+}
+
+export async function listMine(client: ChaptersClient): Promise<Chapter[]> {
+  const {
+    data: { user },
+    error: authError,
+  } = await client.auth.getUser();
+
+  if (authError) {
+    throw toApiError(authError);
+  }
+
+  if (!user) {
+    throw new ApiError("not_authenticated", "Not signed in");
+  }
+
+  const { data, error } = await client
+    .from("chapters")
+    .select(CHAPTER_COLUMNS)
+    .eq("user_id", user.id)
+    .order("position");
+
+  if (error) {
+    throw toApiError(error);
+  }
+
+  return data.map(mapChapterRow);
 }
