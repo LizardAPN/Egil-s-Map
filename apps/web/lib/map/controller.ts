@@ -1,3 +1,4 @@
+import type { FeatureCollection, Point } from "geojson";
 import mapboxgl, {
   type EasingOptions,
   type LngLatBoundsLike,
@@ -6,12 +7,20 @@ import mapboxgl, {
 
 import type { Bbox } from "@imprint/types";
 
+import type { PinFeatureProperties } from "./geojson";
+import {
+  PIN_PULSE_LAYER_ID,
+  PINS_SOURCE_ID,
+  registerPinLayers,
+  type PinInteractionHandlers,
+} from "./layers";
 import { getPrefersReducedMotion } from "./motion";
 
 const DEFAULT_STYLE = "mapbox://styles/mapbox/dark-v11";
 const INITIAL_CENTER: [number, number] = [15, 50];
 const INITIAL_ZOOM = 3.2;
 const BOUNDS_DEBOUNCE_MS = 300;
+const PULSE_DURATION_MS = 1800;
 
 const NIGHT_950_FOG = "rgb(7, 11, 22)";
 
@@ -75,6 +84,15 @@ export class MapController {
   private readonly handleMoveEnd: () => void;
   private readonly handleLoad: () => void;
   private readonly handleStyleLoad: () => void;
+  private pinsLayersRegistered = false;
+  private teardownPinLayers: (() => void) | null = null;
+  private hoveredPinId: string | null = null;
+  private activePinId: string | null = null;
+  private pulseFrameId: number | null = null;
+  private pulseStartTime: number | null = null;
+  private pinInteractionHandlers: PinInteractionHandlers | null = null;
+  private pendingPinsData: FeatureCollection<Point, PinFeatureProperties> | null =
+    null;
 
   private constructor(container: HTMLElement, options?: MapControllerOptions) {
     this.container = container;
@@ -179,6 +197,141 @@ export class MapController {
     };
   }
 
+  initPinLayers(): void {
+    if (this.pinsLayersRegistered) {
+      return;
+    }
+
+    const register = () => {
+      if (this.pinsLayersRegistered) {
+        return;
+      }
+
+      this.teardownPinLayers = registerPinLayers(this.map, {
+        setHoveredPin: (id) => {
+          this.setHoveredPin(id);
+        },
+        expandCluster: (feature, lngLat) => {
+          this.expandCluster(feature, lngLat);
+        },
+        getHandlers: () => this.pinInteractionHandlers,
+      });
+
+      this.pinsLayersRegistered = true;
+
+      if (this.pendingPinsData) {
+        this.setPinsData(this.pendingPinsData);
+      }
+    };
+
+    if (this.isReady) {
+      register();
+    } else {
+      this.onReady(register);
+    }
+  }
+
+  setPinsData(
+    featureCollection: FeatureCollection<Point, PinFeatureProperties>,
+  ): void {
+    this.pendingPinsData = featureCollection;
+
+    const source = this.map.getSource(PINS_SOURCE_ID);
+
+    if (!source || source.type !== "geojson") {
+      return;
+    }
+
+    source.setData(featureCollection);
+    this.reapplyPinVisualState();
+  }
+
+  setPinInteractionHandlers(handlers: PinInteractionHandlers): void {
+    this.pinInteractionHandlers = handlers;
+  }
+
+  setHoveredPin(id: string | null): void {
+    if (!this.map.getSource(PINS_SOURCE_ID)) {
+      return;
+    }
+
+    if (this.hoveredPinId && this.hoveredPinId !== id) {
+      this.map.setFeatureState(
+        { source: PINS_SOURCE_ID, id: this.hoveredPinId },
+        { hover: false },
+      );
+    }
+
+    this.hoveredPinId = id;
+
+    if (id) {
+      this.map.setFeatureState({ source: PINS_SOURCE_ID, id }, { hover: true });
+    }
+  }
+
+  setActivePin(id: string | null): void {
+    if (!this.map.getSource(PINS_SOURCE_ID)) {
+      return;
+    }
+
+    if (this.activePinId && this.activePinId !== id) {
+      this.map.setFeatureState(
+        { source: PINS_SOURCE_ID, id: this.activePinId },
+        { active: false },
+      );
+    }
+
+    this.activePinId = id;
+
+    if (id) {
+      this.map.setFeatureState({ source: PINS_SOURCE_ID, id }, { active: true });
+    }
+
+    if (this.map.getLayer(PIN_PULSE_LAYER_ID)) {
+      this.map.setFilter(PIN_PULSE_LAYER_ID, this.pulseFilterFor(this.activePinId));
+    }
+
+    this.stopPulseAnimation();
+
+    if (id && !getPrefersReducedMotion()) {
+      this.startPulseAnimation();
+    }
+  }
+
+  expandCluster(
+    feature: mapboxgl.GeoJSONFeature,
+    lngLat: mapboxgl.LngLat,
+  ): void {
+    const source = this.map.getSource(PINS_SOURCE_ID);
+
+    if (!source || source.type !== "geojson") {
+      return;
+    }
+
+    const rawClusterId: unknown = feature.properties?.cluster_id;
+
+    if (typeof rawClusterId !== "number") {
+      return;
+    }
+
+    const clusterId = rawClusterId;
+
+    source.getClusterExpansionZoom(clusterId, (error, zoom) => {
+      if (error || zoom === undefined || zoom === null) {
+        return;
+      }
+
+      const center: [number, number] = [lngLat.lng, lngLat.lat];
+
+      if (getPrefersReducedMotion()) {
+        this.map.jumpTo({ center, zoom });
+        return;
+      }
+
+      this.map.easeTo({ center, zoom });
+    });
+  }
+
   flyToPin(
     { lng, lat }: { lng: number; lat: number },
     options?: FlyToPinOptions,
@@ -230,10 +383,16 @@ export class MapController {
   }
 
   destroy(): void {
+    this.stopPulseAnimation();
+
     if (this.boundsDebounceTimer !== null) {
       clearTimeout(this.boundsDebounceTimer);
       this.boundsDebounceTimer = null;
     }
+
+    this.teardownPinLayers?.();
+    this.teardownPinLayers = null;
+    this.pinsLayersRegistered = false;
 
     this.map.off("style.load", this.handleStyleLoad);
     this.map.off("load", this.handleLoad);
@@ -245,6 +404,107 @@ export class MapController {
 
     if (singleton === this) {
       singleton = null;
+    }
+  }
+
+  private pulseFilterFor(pinId: string | null): mapboxgl.FilterSpecification {
+    if (!pinId) {
+      return [
+        "all",
+        ["!", ["has", "point_count"]],
+        ["==", ["get", "exact"], 1],
+        ["==", ["get", "id"], ""],
+      ];
+    }
+
+    return [
+      "all",
+      ["!", ["has", "point_count"]],
+      ["==", ["get", "exact"], 1],
+      ["==", ["get", "id"], pinId],
+    ];
+  }
+
+  private reapplyPinVisualState(): void {
+    if (!this.map.getSource(PINS_SOURCE_ID)) {
+      return;
+    }
+
+    if (this.hoveredPinId) {
+      this.map.setFeatureState(
+        { source: PINS_SOURCE_ID, id: this.hoveredPinId },
+        { hover: true },
+      );
+    }
+
+    if (!this.activePinId) {
+      if (this.map.getLayer(PIN_PULSE_LAYER_ID)) {
+        this.map.setFilter(PIN_PULSE_LAYER_ID, this.pulseFilterFor(null));
+      }
+      this.stopPulseAnimation();
+      return;
+    }
+
+    this.map.setFeatureState(
+      { source: PINS_SOURCE_ID, id: this.activePinId },
+      { active: true },
+    );
+
+    if (this.map.getLayer(PIN_PULSE_LAYER_ID)) {
+      this.map.setFilter(
+        PIN_PULSE_LAYER_ID,
+        this.pulseFilterFor(this.activePinId),
+      );
+    }
+
+    this.stopPulseAnimation();
+
+    if (!getPrefersReducedMotion()) {
+      this.startPulseAnimation();
+    }
+  }
+
+  private startPulseAnimation(): void {
+    this.pulseStartTime = performance.now();
+
+    const tick = (now: number) => {
+      if (!this.activePinId || getPrefersReducedMotion()) {
+        this.stopPulseAnimation();
+        return;
+      }
+
+      const start = this.pulseStartTime ?? now;
+      const elapsed = (now - start) % PULSE_DURATION_MS;
+      const progress = elapsed / PULSE_DURATION_MS;
+      const radius = 8 + progress * 10;
+      const opacity = 0.5 * (1 - progress);
+
+      if (this.map.getLayer(PIN_PULSE_LAYER_ID)) {
+        this.map.setPaintProperty(PIN_PULSE_LAYER_ID, "circle-radius", radius);
+        this.map.setPaintProperty(
+          PIN_PULSE_LAYER_ID,
+          "circle-stroke-opacity",
+          opacity,
+        );
+      }
+
+      this.pulseFrameId = requestAnimationFrame(tick);
+    };
+
+    this.pulseFrameId = requestAnimationFrame(tick);
+  }
+
+  private stopPulseAnimation(): void {
+    if (this.pulseFrameId !== null) {
+      cancelAnimationFrame(this.pulseFrameId);
+      this.pulseFrameId = null;
+    }
+
+    this.pulseStartTime = null;
+
+    if (this.map.getLayer(PIN_PULSE_LAYER_ID)) {
+      this.map.setPaintProperty(PIN_PULSE_LAYER_ID, "circle-radius", 8);
+      this.map.setPaintProperty(PIN_PULSE_LAYER_ID, "circle-stroke-opacity", 0);
     }
   }
 
