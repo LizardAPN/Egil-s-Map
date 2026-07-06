@@ -12,6 +12,7 @@ export interface SheetProps {
   title: string;
   side?: "right" | "bottom";
   blocking?: boolean;
+  dismissOnInteractOutside?: boolean;
   children: ReactNode;
 }
 
@@ -21,6 +22,7 @@ export function Sheet({
   title,
   side = "right",
   blocking = true,
+  dismissOnInteractOutside = true,
   children,
 }: SheetProps) {
   const isRight = side === "right";
@@ -38,6 +40,11 @@ export function Sheet({
           />
         ) : null}
         <DialogPrimitive.Content
+          onInteractOutside={(event) => {
+            if (!dismissOnInteractOutside) {
+              event.preventDefault();
+            }
+          }}
           className={cn(
             "fixed z-50 flex flex-col border-line bg-night-800 shadow-float focus:outline-none",
             !blocking && "pointer-events-auto",

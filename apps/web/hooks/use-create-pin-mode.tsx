@@ -1,5 +1,6 @@
 "use client";
 
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
 import { Button, Dialog } from "@imprint/ui";
@@ -9,6 +10,9 @@ import { useEditorStore } from "../stores/editor-store";
 
 export function useCreatePinMode() {
   const controller = useMapController();
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const isCreateMode = useEditorStore((state) => state.isCreateMode);
   const isFormDirty = useEditorStore((state) => state.isFormDirty);
   const setCreateMode = useEditorStore((state) => state.setCreateMode);
@@ -16,6 +20,17 @@ export function useCreatePinMode() {
   const reset = useEditorStore((state) => state.reset);
 
   const [confirmOpen, setConfirmOpen] = useState(false);
+
+  const clearEditPinParam = useCallback(() => {
+    if (!searchParams.get("editPin")) {
+      return;
+    }
+
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("editPin");
+    const query = params.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname);
+  }, [pathname, router, searchParams]);
 
   useEffect(() => {
     if (!controller) {
@@ -25,16 +40,17 @@ export function useCreatePinMode() {
     return controller.onDraftChange((location) => {
       setDraftLocation(location);
 
-      if (location) {
+      if (location && controller.isInCreateMode() && !controller.isInMoveMode()) {
         setCreateMode(true);
       }
     });
   }, [controller, setCreateMode, setDraftLocation]);
 
   const exitCreateMode = useCallback(() => {
+    clearEditPinParam();
     controller?.exitCreateMode();
     reset();
-  }, [controller, reset]);
+  }, [clearEditPinParam, controller, reset]);
 
   const requestExit = useCallback(() => {
     if (isFormDirty) {
@@ -46,9 +62,11 @@ export function useCreatePinMode() {
   }, [exitCreateMode, isFormDirty]);
 
   const enterCreateMode = useCallback(() => {
+    clearEditPinParam();
+    setDraftLocation(null);
     controller?.enterCreateMode();
     setCreateMode(true);
-  }, [controller, setCreateMode]);
+  }, [clearEditPinParam, controller, setCreateMode, setDraftLocation]);
 
   const toggleCreateMode = useCallback(() => {
     if (isCreateMode) {
@@ -61,7 +79,7 @@ export function useCreatePinMode() {
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
-      if (event.key !== "Escape" || !isCreateMode) {
+      if (event.key !== "Escape" || !isCreateMode || controller?.isInMoveMode()) {
         return;
       }
 
@@ -74,7 +92,7 @@ export function useCreatePinMode() {
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [isCreateMode, requestExit]);
+  }, [controller, isCreateMode, requestExit]);
 
   const confirmDialog = (
     <Dialog

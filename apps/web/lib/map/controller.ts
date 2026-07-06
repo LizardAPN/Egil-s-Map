@@ -115,6 +115,7 @@ export class MapController {
   private draftMarker: mapboxgl.Marker | null = null;
   private readonly draftChangeCallbacks = new Set<DraftChangeCallback>();
   private readonly handleCreateModeClick: (event: mapboxgl.MapMouseEvent) => void;
+  private readonly handleMoveModeClick: (event: mapboxgl.MapMouseEvent) => void;
   private readonly handleContextMenu: (event: mapboxgl.MapMouseEvent) => void;
   private readonly handleDraftDragEnd: () => void;
 
@@ -169,6 +170,22 @@ export class MapController {
 
     this.handleCreateModeClick = (event: mapboxgl.MapMouseEvent) => {
       if (!this.createModeActive) {
+        return;
+      }
+
+      const features = this.map.queryRenderedFeatures(event.point, {
+        layers: [...INTERACTIVE_PIN_LAYERS],
+      });
+
+      if (features.length > 0) {
+        return;
+      }
+
+      this.moveDraft({ lng: event.lngLat.lng, lat: event.lngLat.lat });
+    };
+
+    this.handleMoveModeClick = (event: mapboxgl.MapMouseEvent) => {
+      if (!this.moveModeActive) {
         return;
       }
 
@@ -273,6 +290,7 @@ export class MapController {
         },
         getHandlers: () => this.pinInteractionHandlers,
         isInCreateMode: () => this.createModeActive,
+        isInMoveMode: () => this.moveModeActive,
       });
 
       this.pinsLayersRegistered = true;
@@ -315,32 +333,54 @@ export class MapController {
       this.map.on("click", this.handleCreateModeClick);
     }
 
+    this.exitMoveMode();
+
     if (initial) {
       this.moveDraft(initial);
-    }
-  }
-
-  exitCreateMode(): void {
-    if (!this.createModeActive) {
       return;
     }
 
-    this.createModeActive = false;
-    this.map.getCanvas().style.cursor = "";
-    this.map.off("click", this.handleCreateModeClick);
     this.draftMarker?.remove();
     this.draftMarker = null;
-    this.moveModeActive = false;
+    this.setDraftLocation(null);
+  }
+
+  exitCreateMode(): void {
+    if (this.createModeActive) {
+      this.createModeActive = false;
+      this.map.off("click", this.handleCreateModeClick);
+    }
+
+    this.map.getCanvas().style.cursor = "";
+    this.exitMoveMode();
+    this.draftMarker?.remove();
+    this.draftMarker = null;
     this.setDraftLocation(null);
   }
 
   enterMoveMode(initial: PinLocation): void {
-    this.moveModeActive = true;
+    if (this.createModeActive) {
+      this.createModeActive = false;
+      this.map.off("click", this.handleCreateModeClick);
+    }
+
+    if (!this.moveModeActive) {
+      this.moveModeActive = true;
+      this.map.getCanvas().style.cursor = "crosshair";
+      this.map.on("click", this.handleMoveModeClick);
+    }
+
     this.moveDraft(initial);
   }
 
   exitMoveMode(): void {
+    if (!this.moveModeActive) {
+      return;
+    }
+
     this.moveModeActive = false;
+    this.map.getCanvas().style.cursor = "";
+    this.map.off("click", this.handleMoveModeClick);
     this.draftMarker?.remove();
     this.draftMarker = null;
   }

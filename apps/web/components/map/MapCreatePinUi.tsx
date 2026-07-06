@@ -16,6 +16,8 @@ export function MapCreatePinUi() {
   const createPinMode = useCreatePinMode();
   const searchParams = useSearchParams();
   const editPinId = searchParams.get("editPin");
+  const isCreateMode = useEditorStore((state) => state.isCreateMode);
+  const setCreateMode = useEditorStore((state) => state.setCreateMode);
   const setDraftLocation = useEditorStore((state) => state.setDraftLocation);
 
   const { data: editPin } = useQuery({
@@ -31,12 +33,30 @@ export function MapCreatePinUi() {
   });
 
   useEffect(() => {
-    if (!editPin) {
+    if (!editPinId) {
+      return;
+    }
+
+    setCreateMode(false);
+  }, [editPinId, setCreateMode]);
+
+  useEffect(() => {
+    if (editPinId || isCreateMode) {
+      return;
+    }
+
+    setDraftLocation(null);
+  }, [editPinId, isCreateMode, setDraftLocation]);
+
+  useEffect(() => {
+    if (!editPinId || !editPin) {
       return;
     }
 
     setDraftLocation(editPin.location);
-  }, [editPin, setDraftLocation]);
+  }, [editPinId, editPin, setDraftLocation]);
+
+  const sheetExistingPin = editPinId ? (editPin ?? null) : null;
 
   return (
     <>
@@ -45,9 +65,11 @@ export function MapCreatePinUi() {
         onToggle={createPinMode.toggleCreateMode}
       />
       <PinEditorSheet
+        key={editPinId ?? (isCreateMode ? "create" : "idle")}
         requestExit={createPinMode.requestExit}
+        exitEditor={createPinMode.exitCreateMode}
         confirmDialog={createPinMode.confirmDialog}
-        existingPin={editPin ?? null}
+        existingPin={sheetExistingPin}
       />
     </>
   );

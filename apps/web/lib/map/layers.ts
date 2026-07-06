@@ -41,6 +41,11 @@ export interface PinLayerController {
   ) => void;
   getHandlers: () => PinInteractionHandlers | null;
   isInCreateMode: () => boolean;
+  isInMoveMode: () => boolean;
+}
+
+function isPinInteractionBlocked(controller: PinLayerController): boolean {
+  return controller.isInCreateMode() || controller.isInMoveMode();
 }
 
 function resolveTextFont(map: mapboxgl.Map): string[] {
@@ -201,7 +206,7 @@ export function registerPinLayers(
   const getHandlers = () => controller.getHandlers();
 
   const handleMouseMove = (event: mapboxgl.MapMouseEvent) => {
-    if (controller.isInCreateMode()) {
+    if (isPinInteractionBlocked(controller)) {
       return;
     }
 
@@ -226,7 +231,7 @@ export function registerPinLayers(
   };
 
   const handleMouseLeave = () => {
-    if (controller.isInCreateMode()) {
+    if (isPinInteractionBlocked(controller)) {
       map.getCanvas().style.cursor = "crosshair";
       return;
     }
@@ -236,7 +241,7 @@ export function registerPinLayers(
   };
 
   const handleClick = (event: mapboxgl.MapMouseEvent) => {
-    if (controller.isInCreateMode()) {
+    if (isPinInteractionBlocked(controller)) {
       return;
     }
 
@@ -260,7 +265,7 @@ export function registerPinLayers(
   };
 
   const handleMapClick = (event: mapboxgl.MapMouseEvent) => {
-    if (controller.isInCreateMode()) {
+    if (isPinInteractionBlocked(controller)) {
       return;
     }
 

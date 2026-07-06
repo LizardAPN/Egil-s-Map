@@ -11,9 +11,13 @@ import {
   type ReactNode,
 } from "react";
 
+import { IconCrosshair } from "@tabler/icons-react";
+
 import {
+  ApiError,
   createBrowserClient,
   forwardGeocode,
+  isMapboxTokenError,
   listMyChapters,
   listPinMedia,
   reverseGeocode,
@@ -65,14 +69,17 @@ function isoToDateTimeValue(iso: string): DateTimeValue {
 
 export function PinEditorSheet({
   requestExit,
+  exitEditor,
   confirmDialog,
   existingPin = null,
 }: {
   requestExit: () => void;
+  exitEditor: () => void;
   confirmDialog: ReactNode;
   existingPin?: Pin | null;
 }) {
   const controller = useMapController();
+  const isCreateMode = useEditorStore((state) => state.isCreateMode);
   const draftLocation = useEditorStore((state) => state.draftLocation);
   const setDraftLocation = useEditorStore((state) => state.setDraftLocation);
   const setFormDirty = useEditorStore((state) => state.setFormDirty);
@@ -103,6 +110,8 @@ export function PinEditorSheet({
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [geocodeError, setGeocodeError] = useState<string | null>(null);
+  const [searchError, setSearchError] = useState<string | null>(null);
+  const [hasSearched, setHasSearched] = useState(false);
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [pinnedAt, setPinnedAt] = useState<DateTimeValue>(nowDateTimeValue);
@@ -138,7 +147,7 @@ export function PinEditorSheet({
   }, [existingPin]);
 
   useEffect(() => {
-    if (draftLocation || existingPin) {
+    if (draftLocation || existingPin || isCreateMode) {
       return;
     }
 
@@ -146,13 +155,15 @@ export function PinEditorSheet({
     setSearchQuery("");
     setSearchResults([]);
     setGeocodeError(null);
+    setSearchError(null);
+    setHasSearched(false);
     setTitle("");
     setBody("");
     setPinnedAt(nowDateTimeValue());
     setChapterId(null);
     setVisibilityInitialized(false);
     setFormDirty(false);
-  }, [draftLocation, existingPin, setFormDirty]);
+  }, [draftLocation, existingPin, isCreateMode, setFormDirty]);
 
   const markDirty = useCallback(() => {
     setFormDirty(true);
@@ -227,32 +238,48 @@ export function PinEditorSheet({
     if (!trimmed) {
       setSearchResults([]);
       setSearchLoading(false);
+      setSearchError(null);
+      setHasSearched(false);
       return;
     }
 
     let cancelled = false;
     setSearchLoading(true);
+    setSearchError(null);
+    setHasSearched(false);
 
     const timer = setTimeout(() => {
-      void forwardGeocode(trimmed)
+      const camera = controller?.getCamera();
+      const proximity =
+        draftLocation ??
+        (camera
+          ? { lng: camera.center[0], lat: camera.center[1] }
+          : undefined);
+
+      void forwardGeocode(trimmed, proximity ? { proximity } : undefined)
         .then((results) => {
           if (cancelled) {
             return;
           }
 
-          setGeocodeError(null);
+          setSearchError(null);
           setSearchResults(results);
           setSearchHighlight(0);
         })
-        .catch(() => {
+        .catch((error: unknown) => {
           if (!cancelled) {
-            setGeocodeError("Не удалось найти место");
+            if (error instanceof ApiError && isMapboxTokenError(error)) {
+              setSearchError("Токен Mapbox не принят");
+            } else {
+              setSearchError("Не удалось найти место");
+            }
             setSearchResults([]);
           }
         })
         .finally(() => {
           if (!cancelled) {
             setSearchLoading(false);
+            setHasSearched(true);
           }
         });
     }, 350);
@@ -261,7 +288,7 @@ export function PinEditorSheet({
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [searchQuery]);
+  }, [searchQuery, controller, draftLocation]);
 
   const bodyLength = body.length;
   const showBodyCounter = bodyLength >= 3600;
@@ -328,7 +355,7 @@ export function PinEditorSheet({
       return;
     }
 
-    if (existingPin) {
+    if (isEditMode) {
       updatePinMutation.mutate(
         {
           id: existingPin.id,
@@ -346,7 +373,7 @@ export function PinEditorSheet({
           onSuccess: () => {
             controller?.exitMoveMode();
             toast("Воспоминание сохранено");
-            requestExit();
+            exitEditor();
           },
         },
       );
@@ -400,6 +427,7 @@ export function PinEditorSheet({
     moveOriginRef.current = draftLocation;
     setIsMovingLocation(true);
     controller?.enterMoveMode(draftLocation);
+    toast("Перетащи точку или кликни новое место");
   }
 
   function confirmMoveLocation() {
@@ -426,13 +454,70 @@ export function PinEditorSheet({
     moveOriginRef.current = null;
   }
 
+  useEffect(() => {
+    if (!isMovingLocation) {
+      return;
+    }
+
+    function handleMoveKeyDown(event: globalThis.KeyboardEvent) {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        cancelMoveLocation();
+        return;
+      }
+
+      if (
+        event.key === "Enter" &&
+        !event.metaKey &&
+        !event.ctrlKey &&
+        !event.altKey &&
+        !event.shiftKey
+      ) {
+        const target = event.target;
+
+        if (
+          target instanceof HTMLInputElement ||
+          target instanceof HTMLTextAreaElement
+        ) {
+          return;
+        }
+
+        event.preventDefault();
+        confirmMoveLocation();
+      }
+    }
+
+    window.addEventListener("keydown", handleMoveKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleMoveKeyDown);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- handlers read latest move state
+  }, [isMovingLocation]);
+
+  const sheetOpen = isCreateMode || draftLocation !== null;
+  const saveDisabled = !draftLocation || !title.trim();
+  const saveDisabledReason = !draftLocation
+    ? "Сначала выбери точку на карте"
+    : !title.trim()
+      ? "Введите заголовок"
+      : undefined;
+  const trimmedSearchQuery = searchQuery.trim();
+  const showSearchDropdown =
+    searchOpen &&
+    (searchLoading ||
+      searchResults.length > 0 ||
+      searchError !== null ||
+      (hasSearched && trimmedSearchQuery.length > 0 && !searchLoading));
+
   return (
     <>
       <Sheet
-        open={draftLocation !== null}
+        open={sheetOpen}
         onOpenChange={handleOpenChange}
         title={isEditMode ? "Редактировать воспоминание" : "Новое воспоминание"}
         blocking={false}
+        dismissOnInteractOutside={false}
       >
         <div className="flex h-full flex-col gap-6">
           <section className="space-y-3">
@@ -487,35 +572,48 @@ export function PinEditorSheet({
               </>
             ) : (
               <>
-                <div className="space-y-2">
-                  <label htmlFor="pin-location-name" className="text-sm text-ink-secondary">
-                    Место
-                  </label>
-                  <div className="relative">
-                    <Input
-                      id="pin-location-name"
-                      value={locationName}
-                      onChange={(event) => {
-                        setLocationName(event.target.value);
-                        markDirty();
-                      }}
-                      placeholder="Название места"
+                {!draftLocation ? (
+                  <div className="flex items-center gap-3 rounded-control border border-dashed border-line-strong px-3 py-4">
+                    <IconCrosshair
+                      className="shrink-0 text-ink-muted"
+                      size={20}
+                      stroke={1.5}
+                      aria-hidden
                     />
-                    {reverseLoading ? (
-                      <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2">
-                        <Spinner size={14} />
-                      </div>
-                    ) : null}
+                    <p className="text-sm text-ink-secondary">
+                      Кликни по карте, чтобы поставить точку — или найди место через
+                      поиск ниже
+                    </p>
                   </div>
-                  {draftLocation ? (
+                ) : (
+                  <div className="space-y-2">
+                    <label htmlFor="pin-location-name" className="text-sm text-ink-secondary">
+                      Место
+                    </label>
+                    <div className="relative">
+                      <Input
+                        id="pin-location-name"
+                        value={locationName}
+                        onChange={(event) => {
+                          setLocationName(event.target.value);
+                          markDirty();
+                        }}
+                        placeholder="Название места"
+                      />
+                      {reverseLoading ? (
+                        <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2">
+                          <Spinner size={14} />
+                        </div>
+                      ) : null}
+                    </div>
                     <p className="font-mono text-xs text-ink-muted">
                       {formatCoords(draftLocation)}
                     </p>
-                  ) : null}
-                  {geocodeError ? (
-                    <p className="text-xs text-danger">{geocodeError}</p>
-                  ) : null}
-                </div>
+                    {geocodeError ? (
+                      <p className="text-xs text-danger">{geocodeError}</p>
+                    ) : null}
+                  </div>
+                )}
 
                 <div className="relative space-y-2">
                   <label htmlFor="pin-location-search" className="text-sm text-ink-secondary">
@@ -525,7 +623,7 @@ export function PinEditorSheet({
                     id="pin-location-search"
                     value={searchQuery}
                     role="combobox"
-                    aria-expanded={searchOpen && searchResults.length > 0}
+                    aria-expanded={showSearchDropdown}
                     aria-controls={searchListId}
                     aria-autocomplete="list"
                     onChange={(event) => {
@@ -538,7 +636,7 @@ export function PinEditorSheet({
                     onKeyDown={handleSearchKeyDown}
                     placeholder="Город, район или место"
                   />
-                  {searchOpen && (searchLoading || searchResults.length > 0) ? (
+                  {showSearchDropdown ? (
                     <ul
                       id={searchListId}
                       role="listbox"
@@ -548,6 +646,12 @@ export function PinEditorSheet({
                         <li className="flex items-center gap-2 px-3 py-2 text-sm text-ink-muted">
                           <Spinner size={14} />
                           Поиск…
+                        </li>
+                      ) : searchError ? (
+                        <li className="px-3 py-2 text-sm text-danger">{searchError}</li>
+                      ) : hasSearched && searchResults.length === 0 ? (
+                        <li className="px-3 py-2 text-sm text-ink-muted">
+                          Ничего не найдено
                         </li>
                       ) : (
                         searchResults.map((result, index) => (
@@ -706,15 +810,20 @@ export function PinEditorSheet({
           </section>
 
           <div className="mt-auto flex gap-2 border-t border-line-subtle pt-4">
-            <Button
-              type="button"
-              className="flex-1"
-              loading={createPinMutation.isPending || updatePinMutation.isPending}
-              disabled={!title.trim()}
-              onClick={handleSubmit}
+            <span
+              className={cn("flex flex-1", saveDisabled && "cursor-not-allowed")}
+              title={saveDisabled ? saveDisabledReason : undefined}
             >
-              Сохранить
-            </Button>
+              <Button
+                type="button"
+                className="w-full"
+                loading={createPinMutation.isPending || updatePinMutation.isPending}
+                disabled={saveDisabled}
+                onClick={handleSubmit}
+              >
+                Сохранить
+              </Button>
+            </span>
             <Button
               type="button"
               variant="ghost"

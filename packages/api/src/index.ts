@@ -3,7 +3,9 @@ export { ApiError, toApiError } from "./errors";
 export {
   forwardGeocode,
   isGeocodeError,
+  isMapboxTokenError,
   reverseGeocode,
+  type ForwardGeocodeOptions,
   type GeocodeResult,
 } from "./geocoding";
 export {
