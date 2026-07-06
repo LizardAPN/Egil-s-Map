@@ -7,6 +7,7 @@ import { createBrowserClient, listInBounds } from "@imprint/api";
 import type { Bbox } from "@imprint/types";
 
 import { queryBboxForPins } from "../lib/map/bbox";
+import { pinKeys } from "../lib/pin-keys";
 import { useMapStore } from "../stores/map-store";
 
 export interface PinsInViewFilters {
@@ -29,14 +30,7 @@ export function usePinsInView(filters?: PinsInViewFilters) {
   }, [bbox, zoom]);
 
   return useQuery({
-    queryKey: [
-      "pins",
-      "bounds",
-      queryBbox,
-      filters?.chapterId,
-      filters?.from,
-      filters?.to,
-    ],
+    queryKey: pinKeys.bounds(queryBbox, filters),
     queryFn: async () => {
       if (!queryBbox) {
         return [];

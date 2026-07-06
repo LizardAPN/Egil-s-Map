@@ -30,6 +30,8 @@ export function mapPinDetailRow(row: PinDetailRow): Pin {
   return {
     ...mapPinRow(row),
     body: row.body,
+    chapterTitle: row.chapter_title || null,
+    chapterColor: row.chapter_color || null,
   };
 }
 

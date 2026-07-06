@@ -1,12 +1,44 @@
 "use client";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 
 import { createBrowserClient, getById } from "@imprint/api";
+import { toast } from "@imprint/ui";
 
 import { useMapController } from "../components/map/MapCanvas";
+import { pinNavigationState } from "../lib/map-pin-navigation";
 import { useMapStore } from "../stores/map-store";
+
+export function useCloseActivePin() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  return useCallback(
+    (options?: { replace?: boolean }) => {
+      const pinParam = searchParams.get("pin");
+
+      if (!pinParam) {
+        useMapStore.getState().setActivePin(null);
+        return;
+      }
+
+      if (!options?.replace && pinNavigationState.selectionPushed) {
+        pinNavigationState.selectionPushed = false;
+        router.back();
+        return;
+      }
+
+      pinNavigationState.selectionPushed = false;
+      const params = new URLSearchParams(searchParams.toString());
+      params.delete("pin");
+      const next = params.toString();
+      router.replace(next ? `${pathname}?${next}` : pathname, { scroll: false });
+    },
+    [pathname, router, searchParams],
+  );
+}
 
 export function useMapPinSync(): void {
   const controller = useMapController();
@@ -17,6 +49,7 @@ export function useMapPinSync(): void {
   const activePinId = useMapStore((state) => state.activePinId);
   const setActivePin = useMapStore((state) => state.setActivePin);
   const isMapReady = useMapStore((state) => state.isMapReady);
+  const closeActivePin = useCloseActivePin();
   const flownPinRef = useRef<string | null>(null);
   const skipStoreToUrlRef = useRef(false);
 
@@ -34,7 +67,7 @@ export function useMapPinSync(): void {
     skipStoreToUrlRef.current = true;
   }, [pinParam, setActivePin]);
 
-  // Store → URL (skip the echo right after URL → store)
+  // Store → URL (programmatic updates e.g. create pin, delete)
   useEffect(() => {
     if (skipStoreToUrlRef.current) {
       skipStoreToUrlRef.current = false;
@@ -70,16 +103,25 @@ export function useMapPinSync(): void {
     const supabase = createBrowserClient();
 
     void getById(supabase, pinParam).then((pin) => {
-      if (!cancelled && pin) {
-        flownPinRef.current = pinParam;
-        controller.flyToPin(pin.location);
+      if (cancelled) {
+        return;
       }
+
+      if (!pin) {
+        toast.error("Воспоминание недоступно");
+        flownPinRef.current = null;
+        router.replace(pathname, { scroll: false });
+        return;
+      }
+
+      flownPinRef.current = pinParam;
+      controller.flyToPin(pin.location);
     });
 
     return () => {
       cancelled = true;
     };
-  }, [pinParam, isMapReady, controller]);
+  }, [pinParam, isMapReady, controller, pathname, router]);
 
   useEffect(() => {
     if (!pinParam) {
@@ -94,15 +136,27 @@ export function useMapPinSync(): void {
 
     controller.setPinInteractionHandlers({
       onPinClick: (pinId) => {
-        setActivePin(pinId);
-      },
-      onMapClick: () => {
-        if (controller.isInCreateMode()) {
+        if (pinId === pinParam) {
           return;
         }
 
-        setActivePin(null);
+        const params = new URLSearchParams(searchParams.toString());
+        params.set("pin", pinId);
+        pinNavigationState.selectionPushed = true;
+        router.push(
+          params.toString() ? `${pathname}?${params.toString()}` : pathname,
+          { scroll: false },
+        );
+      },
+      onMapClick: () => {
+        if (controller.isInCreateMode() || controller.isInMoveMode()) {
+          return;
+        }
+
+        if (pinParam) {
+          closeActivePin();
+        }
       },
     });
-  }, [controller, setActivePin]);
+  }, [controller, pinParam, pathname, router, searchParams, closeActivePin]);
 }

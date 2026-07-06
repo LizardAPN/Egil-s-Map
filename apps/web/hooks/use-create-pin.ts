@@ -1,10 +1,10 @@
 "use client";
 
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { useMemo, useRef } from "react";
 
 import { createBrowserClient, createPin, uploadPinMedia } from "@imprint/api";
-import type { CreatePinInput, PinListItem } from "@imprint/types";
+import type { CreatePinInput, PinListItem, PinMedia } from "@imprint/types";
 import { toast } from "@imprint/ui";
 
 import { useMapController } from "../components/map/MapCanvas";
@@ -23,32 +23,58 @@ interface CreatePinContext {
   queryKey: ReturnType<typeof pinKeys.bounds>;
 }
 
-async function uploadStagedPhotos(pinId: string, files: File[], startIndex = 0) {
+async function uploadStagedPhotos(
+  queryClient: QueryClient,
+  pinId: string,
+  files: File[],
+  startIndex = 0,
+) {
   if (files.length === 0 || startIndex >= files.length) {
     return;
   }
 
-  const remaining = files.slice(startIndex);
   const supabase = createBrowserClient();
   let toastId: string | number | undefined;
   let failedAt = startIndex;
 
   try {
-    await uploadPinMedia(supabase, pinId, remaining, (progress) => {
-      const absoluteIndex = startIndex + progress.index + 1;
-      toastId = toast(`Загружаю фото… ${String(absoluteIndex)}/${String(files.length)}`, {
-        id: toastId,
+    for (let index = startIndex; index < files.length; index += 1) {
+      const file = files[index];
+
+      if (!file) {
+        continue;
+      }
+
+      const [created] = await uploadPinMedia(supabase, pinId, [file], (progress) => {
+        toastId = toast(
+          `Загружаю фото… ${String(index + 1)}/${String(files.length)}`,
+          { id: toastId },
+        );
+        failedAt = index + (progress.phase === "saving" ? 1 : 0);
       });
-      failedAt = startIndex + progress.index;
-    });
+
+      if (!created) {
+        throw new Error("Upload failed");
+      }
+
+      await queryClient.cancelQueries({ queryKey: pinKeys.media(pinId) });
+      queryClient.setQueryData<PinMedia[]>(pinKeys.media(pinId), (current) => [
+        ...(current ?? []),
+        created,
+      ]);
+      failedAt = index + 1;
+    }
+
     toast.success("Фото добавлены", { id: toastId });
+    void queryClient.invalidateQueries({ queryKey: pinKeys.media(pinId) });
+    void queryClient.invalidateQueries({ queryKey: pinKeys.detail(pinId) });
   } catch {
     toast.error("Не удалось загрузить фото", {
       id: toastId,
       action: {
         label: "Повторить",
         onClick: () => {
-          void uploadStagedPhotos(pinId, files, failedAt);
+          void uploadStagedPhotos(queryClient, pinId, files, failedAt);
         },
       },
     });
@@ -142,7 +168,7 @@ export function useCreatePin() {
       const stagedFiles = input.stagedFiles ?? [];
 
       if (stagedFiles.length > 0) {
-        void uploadStagedPhotos(result.id, stagedFiles);
+        void uploadStagedPhotos(queryClient, result.id, stagedFiles);
       }
     },
     onError: (_error, input, context) => {

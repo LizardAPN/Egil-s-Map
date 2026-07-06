@@ -9,6 +9,7 @@ import { useEffect } from "react";
 
 import { createBrowserClient, getById } from "@imprint/api";
 
+import { pinKeys } from "../../lib/pin-keys";
 import { useEditorStore } from "../../stores/editor-store";
 
 export function MapCreatePinUi() {
@@ -18,7 +19,7 @@ export function MapCreatePinUi() {
   const setDraftLocation = useEditorStore((state) => state.setDraftLocation);
 
   const { data: editPin } = useQuery({
-    queryKey: ["pin", editPinId],
+    queryKey: pinKeys.detail(editPinId),
     queryFn: async () => {
       if (!editPinId) {
         return null;

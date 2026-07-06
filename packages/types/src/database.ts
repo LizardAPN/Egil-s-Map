@@ -801,7 +801,9 @@ export type Database = {
         Args: { p_id: string }
         Returns: {
           body: string
+          chapter_color: string
           chapter_id: string
+          chapter_title: string
           id: string
           lat: number
           lng: number

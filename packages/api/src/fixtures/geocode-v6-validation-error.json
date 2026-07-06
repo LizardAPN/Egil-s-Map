@@ -1,0 +1,1 @@
+{"message":"Type \"poi\" is not a known type. Must be one of: country, region, postcode, district, place, locality, neighborhood, street, block, address, secondary_address","error_code":"VALIDATION_ERROR"}

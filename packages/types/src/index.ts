@@ -59,6 +59,8 @@ export interface PinListItem {
 
 export interface Pin extends PinListItem {
   body: string | null;
+  chapterTitle?: string | null;
+  chapterColor?: string | null;
 }
 
 export interface PinMedia {

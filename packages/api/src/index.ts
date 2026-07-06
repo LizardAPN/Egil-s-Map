@@ -2,6 +2,7 @@ export { createChapter, listMine as listMyChapters } from "./chapters";
 export { ApiError, toApiError } from "./errors";
 export {
   forwardGeocode,
+  isGeocodeError,
   reverseGeocode,
   type GeocodeResult,
 } from "./geocoding";

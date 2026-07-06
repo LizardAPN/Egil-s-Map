@@ -65,6 +65,7 @@ export function BlurImage({
   }, [blurhash, width, height]);
 
   const showImage = loaded || reduceMotion;
+  const hasSrc = src.length > 0;
 
   return (
     <span className={cn("relative block overflow-hidden", className)}>
@@ -74,21 +75,23 @@ export function BlurImage({
           aria-hidden
           className={cn(
             "absolute inset-0 h-full w-full object-cover transition-opacity duration-200",
-            showImage ? "opacity-0" : "opacity-100",
+            hasSrc && showImage ? "opacity-0" : "opacity-100",
           )}
         />
       ) : null}
-      <img
-        src={src}
-        alt={alt}
-        onLoad={() => {
-          setLoaded(true);
-        }}
-        className={cn(
-          "h-full w-full object-cover transition-opacity duration-200",
-          showImage ? "opacity-100" : "opacity-0",
-        )}
-      />
+      {hasSrc ? (
+        <img
+          src={src}
+          alt={alt}
+          onLoad={() => {
+            setLoaded(true);
+          }}
+          className={cn(
+            "h-full w-full object-cover transition-opacity duration-200",
+            showImage ? "opacity-100" : "opacity-0",
+          )}
+        />
+      ) : null}
     </span>
   );
 }

@@ -49,12 +49,17 @@ describe("mapPinRow", () => {
 });
 
 describe("mapPinDetailRow", () => {
-  it("includes body", () => {
+  it("includes body and chapter metadata", () => {
     const detail: PinDetailRow = {
       ...baseRow,
       body: "Story text here.",
+      chapter_title: "Год в Лиссабоне",
+      chapter_color: "#EFB65A",
     };
-    expect(mapPinDetailRow(detail).body).toBe("Story text here.");
+    const pin = mapPinDetailRow(detail);
+    expect(pin.body).toBe("Story text here.");
+    expect(pin.chapterTitle).toBe("Год в Лиссабоне");
+    expect(pin.chapterColor).toBe("#EFB65A");
   });
 });
 

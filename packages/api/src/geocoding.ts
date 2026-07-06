@@ -3,7 +3,32 @@ import type { PinLocation } from "@imprint/types";
 import { ApiError } from "./errors";
 
 const GEOCODE_BASE = "https://api.mapbox.com/search/geocode/v6";
-const ALLOWED_TYPES = new Set(["place", "locality", "poi"]);
+
+const FORWARD_ALLOWED_TYPES = new Set([
+  "address",
+  "street",
+  "neighborhood",
+  "place",
+  "locality",
+  "district",
+]);
+
+const REVERSE_DISALLOWED_TYPES = new Set([
+  "country",
+  "region",
+  "postcode",
+  "block",
+  "secondary_address",
+]);
+
+const REVERSE_PRIORITY = [
+  "address",
+  "locality",
+  "place",
+  "neighborhood",
+  "street",
+  "district",
+] as const;
 
 export interface GeocodeResult {
   id: string;
@@ -13,7 +38,7 @@ export interface GeocodeResult {
   location: PinLocation;
 }
 
-interface V6Feature {
+export interface V6Feature {
   properties?: {
     mapbox_id?: string;
     feature_type?: string;
@@ -30,8 +55,12 @@ interface V6Feature {
   };
 }
 
-interface V6Response {
+export interface V6Response {
   features?: V6Feature[];
+}
+
+export function isGeocodeError(error: unknown): error is ApiError {
+  return error instanceof ApiError && error.code === "geocode_failed";
 }
 
 function getMapboxToken(): string {
@@ -47,7 +76,23 @@ function getMapboxToken(): string {
   return token;
 }
 
-function parseFeature(feature: V6Feature): GeocodeResult | null {
+function warnGeocodeFailure(status: number, url: URL, detail?: unknown): void {
+  if (process.env.NODE_ENV !== "development") {
+    return;
+  }
+
+  const safeUrl = new URL(url);
+  safeUrl.searchParams.delete("access_token");
+  console.warn(
+    `[geocoding] request failed (${String(status)}): ${safeUrl.toString()}`,
+    detail,
+  );
+}
+
+function parseFeature(
+  feature: V6Feature,
+  mode: "forward" | "reverse",
+): GeocodeResult | null {
   const props = feature.properties;
 
   if (!props) {
@@ -56,7 +101,11 @@ function parseFeature(feature: V6Feature): GeocodeResult | null {
 
   const featureType = props.feature_type ?? "";
 
-  if (!ALLOWED_TYPES.has(featureType)) {
+  if (REVERSE_DISALLOWED_TYPES.has(featureType)) {
+    return null;
+  }
+
+  if (mode === "forward" && !FORWARD_ALLOWED_TYPES.has(featureType)) {
     return null;
   }
 
@@ -84,7 +133,33 @@ function parseFeature(feature: V6Feature): GeocodeResult | null {
   };
 }
 
-function parseResponse(data: V6Response): GeocodeResult[] {
+export function pickBestReverseFeature(data: V6Response): GeocodeResult | null {
+  if (!Array.isArray(data.features)) {
+    return null;
+  }
+
+  const byType = new Map<string, GeocodeResult>();
+
+  for (const feature of data.features) {
+    const parsed = parseFeature(feature, "reverse");
+
+    if (parsed && !byType.has(parsed.featureType)) {
+      byType.set(parsed.featureType, parsed);
+    }
+  }
+
+  for (const featureType of REVERSE_PRIORITY) {
+    const result = byType.get(featureType);
+
+    if (result) {
+      return result;
+    }
+  }
+
+  return null;
+}
+
+function parseForwardResponse(data: V6Response): GeocodeResult[] {
   if (!Array.isArray(data.features)) {
     return [];
   }
@@ -92,7 +167,7 @@ function parseResponse(data: V6Response): GeocodeResult[] {
   const results: GeocodeResult[] = [];
 
   for (const feature of data.features) {
-    const parsed = parseFeature(feature);
+    const parsed = parseFeature(feature, "forward");
 
     if (parsed) {
       results.push(parsed);
@@ -103,16 +178,32 @@ function parseResponse(data: V6Response): GeocodeResult[] {
 }
 
 async function fetchGeocode(url: URL): Promise<V6Response> {
-  const response = await fetch(url);
+  let response: Response;
+
+  try {
+    response = await fetch(url);
+  } catch (error) {
+    warnGeocodeFailure(0, url, error);
+    throw new ApiError("geocode_failed", "Geocoding request failed (network)");
+  }
 
   if (!response.ok) {
+    warnGeocodeFailure(response.status, url);
     throw new ApiError(
       "geocode_failed",
       `Geocoding request failed (${String(response.status)})`,
     );
   }
 
-  return (await response.json()) as V6Response;
+  try {
+    return (await response.json()) as V6Response;
+  } catch (error) {
+    warnGeocodeFailure(response.status, url, error);
+    throw new ApiError(
+      "geocode_failed",
+      "Geocoding response parse failed",
+    );
+  }
 }
 
 export async function reverseGeocode(
@@ -123,13 +214,11 @@ export async function reverseGeocode(
   url.searchParams.set("longitude", String(lng));
   url.searchParams.set("latitude", String(lat));
   url.searchParams.set("language", "ru");
-  url.searchParams.set("types", "place,locality,poi");
   url.searchParams.set("access_token", getMapboxToken());
 
   const data = await fetchGeocode(url);
-  const results = parseResponse(data);
 
-  return results[0] ?? null;
+  return pickBestReverseFeature(data);
 }
 
 export async function forwardGeocode(query: string): Promise<GeocodeResult[]> {
@@ -143,10 +232,9 @@ export async function forwardGeocode(query: string): Promise<GeocodeResult[]> {
   url.searchParams.set("q", trimmed);
   url.searchParams.set("language", "ru");
   url.searchParams.set("limit", "5");
-  url.searchParams.set("types", "place,locality,poi");
   url.searchParams.set("access_token", getMapboxToken());
 
   const data = await fetchGeocode(url);
 
-  return parseResponse(data).slice(0, 5);
+  return parseForwardResponse(data).slice(0, 5);
 }

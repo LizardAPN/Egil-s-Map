@@ -2,12 +2,6 @@
 
 import { useQuery } from "@tanstack/react-query";
 import {
-  IconLink,
-  IconLock,
-  IconUsers,
-  IconWorld,
-} from "@tabler/icons-react";
-import {
   useCallback,
   useEffect,
   useId,
@@ -23,7 +17,6 @@ import {
   listMyChapters,
   listPinMedia,
   reverseGeocode,
-  updatePin,
   type GeocodeResult,
 } from "@imprint/api";
 import type { Pin, PinLocation, Visibility } from "@imprint/types";
@@ -44,44 +37,15 @@ import {
 
 import { useCreatePin } from "../../hooks/use-create-pin";
 import { useMyPreferences } from "../../hooks/use-my-preferences";
+import { useUpdatePin } from "../../hooks/use-update-pin";
+import { pinKeys } from "../../lib/pin-keys";
+import { VISIBILITY_OPTIONS } from "../../lib/pin-visibility";
 import { useMapController } from "../map/MapCanvas";
 import { useEditorStore } from "../../stores/editor-store";
 import {
   PinPhotoSection,
   type PinPhotoSectionHandle,
 } from "./PinPhotoSection";
-
-const VISIBILITY_OPTIONS: Array<{
-  value: Visibility;
-  label: string;
-  icon: typeof IconLock;
-  helper: string;
-}> = [
-  {
-    value: "private",
-    label: "Личное",
-    icon: IconLock,
-    helper: "Только вы видите этот пин.",
-  },
-  {
-    value: "friends",
-    label: "Друзья",
-    icon: IconUsers,
-    helper: "Видят взаимные подписчики; координаты приблизительные.",
-  },
-  {
-    value: "unlisted",
-    label: "По ссылке",
-    icon: IconLink,
-    helper: "Доступен по ссылке, не появляется в лентах.",
-  },
-  {
-    value: "public",
-    label: "Публично",
-    icon: IconWorld,
-    helper: "Виден всем; точное место на карте.",
-  },
-];
 
 function formatCoords(location: PinLocation): string {
   return `${location.lat.toFixed(4)}, ${location.lng.toFixed(4)}`;
@@ -110,9 +74,11 @@ export function PinEditorSheet({
 }) {
   const controller = useMapController();
   const draftLocation = useEditorStore((state) => state.draftLocation);
+  const setDraftLocation = useEditorStore((state) => state.setDraftLocation);
   const setFormDirty = useEditorStore((state) => state.setFormDirty);
   const { data: preferences } = useMyPreferences();
   const createPinMutation = useCreatePin();
+  const updatePinMutation = useUpdatePin();
   const isEditMode = existingPin !== null;
 
   const { data: chapters } = useQuery({
@@ -127,15 +93,16 @@ export function PinEditorSheet({
   const initializedEditPinRef = useRef<string | null>(null);
   const searchListId = useId();
 
-  const [isSaving, setIsSaving] = useState(false);
-
+  const [searchHighlight, setSearchHighlight] = useState(0);
+  const [isMovingLocation, setIsMovingLocation] = useState(false);
+  const moveOriginRef = useRef<PinLocation | null>(null);
   const [locationName, setLocationName] = useState("");
   const [reverseLoading, setReverseLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<GeocodeResult[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
-  const [searchHighlight, setSearchHighlight] = useState(0);
+  const [geocodeError, setGeocodeError] = useState<string | null>(null);
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [pinnedAt, setPinnedAt] = useState<DateTimeValue>(nowDateTimeValue);
@@ -144,7 +111,7 @@ export function PinEditorSheet({
   const [visibilityInitialized, setVisibilityInitialized] = useState(false);
 
   const { data: pinMedia } = useQuery({
-    queryKey: ["pin-media", existingPin?.id],
+    queryKey: pinKeys.media(existingPin?.id ?? null),
     queryFn: async () => {
       if (!existingPin) {
         return [];
@@ -178,6 +145,7 @@ export function PinEditorSheet({
     setLocationName("");
     setSearchQuery("");
     setSearchResults([]);
+    setGeocodeError(null);
     setTitle("");
     setBody("");
     setPinnedAt(nowDateTimeValue());
@@ -208,18 +176,27 @@ export function PinEditorSheet({
     setReverseLoading(true);
 
     const timer = setTimeout(() => {
-      void reverseGeocode(draftLocation.lng, draftLocation.lat).then(
-        (result) => {
-          if (!cancelled && result) {
+      void reverseGeocode(draftLocation.lng, draftLocation.lat)
+        .then((result) => {
+          if (cancelled) {
+            return;
+          }
+
+          if (result) {
+            setGeocodeError(null);
             setLocationName(result.name);
           }
-        },
-        () => undefined,
-      ).finally(() => {
-        if (!cancelled) {
-          setReverseLoading(false);
-        }
-      });
+        })
+        .catch(() => {
+          if (!cancelled) {
+            setGeocodeError("Не удалось найти место");
+          }
+        })
+        .finally(() => {
+          if (!cancelled) {
+            setReverseLoading(false);
+          }
+        });
     }, 300);
 
     return () => {
@@ -257,23 +234,27 @@ export function PinEditorSheet({
     setSearchLoading(true);
 
     const timer = setTimeout(() => {
-      void forwardGeocode(trimmed).then(
-        (results) => {
-          if (!cancelled) {
-            setSearchResults(results);
-            setSearchHighlight(0);
+      void forwardGeocode(trimmed)
+        .then((results) => {
+          if (cancelled) {
+            return;
           }
-        },
-        () => {
+
+          setGeocodeError(null);
+          setSearchResults(results);
+          setSearchHighlight(0);
+        })
+        .catch(() => {
           if (!cancelled) {
+            setGeocodeError("Не удалось найти место");
             setSearchResults([]);
           }
-        },
-      ).finally(() => {
-        if (!cancelled) {
-          setSearchLoading(false);
-        }
-      });
+        })
+        .finally(() => {
+          if (!cancelled) {
+            setSearchLoading(false);
+          }
+        });
     }, 350);
 
     return () => {
@@ -343,32 +324,32 @@ export function PinEditorSheet({
   }
 
   function handleSubmit() {
-    if (!draftLocation || !title.trim() || createPinMutation.isPending || isSaving) {
+    if (!draftLocation || !title.trim() || createPinMutation.isPending || updatePinMutation.isPending) {
       return;
     }
 
     if (existingPin) {
-      setIsSaving(true);
-
-      void updatePin(createBrowserClient(), existingPin.id, {
-        chapterId,
-        location: draftLocation,
-        locationName: locationName.trim() || null,
-        title: title.trim(),
-        body: body.trim() || null,
-        visibility,
-        pinnedAt: dateTimeToIso(pinnedAt),
-      })
-        .then(() => {
-          toast("Воспоминание сохранено");
-          requestExit();
-        })
-        .catch(() => {
-          toast.error("Не удалось сохранить");
-        })
-        .finally(() => {
-          setIsSaving(false);
-        });
+      updatePinMutation.mutate(
+        {
+          id: existingPin.id,
+          patch: {
+            chapterId,
+            location: draftLocation,
+            locationName: locationName.trim() || null,
+            title: title.trim(),
+            body: body.trim() || null,
+            visibility,
+            pinnedAt: dateTimeToIso(pinnedAt),
+          },
+        },
+        {
+          onSuccess: () => {
+            controller?.exitMoveMode();
+            toast("Воспоминание сохранено");
+            requestExit();
+          },
+        },
+      );
 
       return;
     }
@@ -411,6 +392,40 @@ export function PinEditorSheet({
     VISIBILITY_OPTIONS.find((option) => option.value === visibility)?.helper ??
     "";
 
+  function startMoveLocation() {
+    if (!draftLocation) {
+      return;
+    }
+
+    moveOriginRef.current = draftLocation;
+    setIsMovingLocation(true);
+    controller?.enterMoveMode(draftLocation);
+  }
+
+  function confirmMoveLocation() {
+    const location = controller?.getDraftLocation();
+
+    if (location) {
+      setDraftLocation(location);
+      markDirty();
+    }
+
+    controller?.exitMoveMode();
+    setIsMovingLocation(false);
+    moveOriginRef.current = null;
+  }
+
+  function cancelMoveLocation() {
+    controller?.exitMoveMode();
+
+    if (moveOriginRef.current) {
+      setDraftLocation(moveOriginRef.current);
+    }
+
+    setIsMovingLocation(false);
+    moveOriginRef.current = null;
+  }
+
   return (
     <>
       <Sheet
@@ -421,92 +436,148 @@ export function PinEditorSheet({
       >
         <div className="flex h-full flex-col gap-6">
           <section className="space-y-3">
-            <div className="space-y-2">
-              <label htmlFor="pin-location-name" className="text-sm text-ink-secondary">
-                Место
-              </label>
-              <div className="relative">
-                <Input
-                  id="pin-location-name"
-                  value={locationName}
-                  onChange={(event) => {
-                    setLocationName(event.target.value);
-                    markDirty();
-                  }}
-                  placeholder="Название места"
-                />
-                {reverseLoading ? (
-                  <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2">
-                    <Spinner size={14} />
+            {isEditMode ? (
+              <>
+                <div className="space-y-2">
+                  <label htmlFor="pin-location-name" className="text-sm text-ink-secondary">
+                    Место
+                  </label>
+                  <Input
+                    id="pin-location-name"
+                    value={locationName}
+                    disabled={isMovingLocation}
+                    onChange={(event) => {
+                      setLocationName(event.target.value);
+                      markDirty();
+                    }}
+                    placeholder="Название места"
+                  />
+                  {draftLocation ? (
+                    <p className="font-mono text-xs text-ink-muted">
+                      {formatCoords(draftLocation)}
+                    </p>
+                  ) : null}
+                </div>
+                {isMovingLocation ? (
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      className="flex-1"
+                      onClick={confirmMoveLocation}
+                    >
+                      Готово
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={cancelMoveLocation}
+                    >
+                      Отмена
+                    </Button>
                   </div>
-                ) : null}
-              </div>
-              {draftLocation ? (
-                <p className="font-mono text-xs text-ink-muted">
-                  {formatCoords(draftLocation)}
-                </p>
-              ) : null}
-            </div>
+                ) : (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={startMoveLocation}
+                  >
+                    Переместить точку
+                  </Button>
+                )}
+              </>
+            ) : (
+              <>
+                <div className="space-y-2">
+                  <label htmlFor="pin-location-name" className="text-sm text-ink-secondary">
+                    Место
+                  </label>
+                  <div className="relative">
+                    <Input
+                      id="pin-location-name"
+                      value={locationName}
+                      onChange={(event) => {
+                        setLocationName(event.target.value);
+                        markDirty();
+                      }}
+                      placeholder="Название места"
+                    />
+                    {reverseLoading ? (
+                      <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2">
+                        <Spinner size={14} />
+                      </div>
+                    ) : null}
+                  </div>
+                  {draftLocation ? (
+                    <p className="font-mono text-xs text-ink-muted">
+                      {formatCoords(draftLocation)}
+                    </p>
+                  ) : null}
+                  {geocodeError ? (
+                    <p className="text-xs text-danger">{geocodeError}</p>
+                  ) : null}
+                </div>
 
-            <div className="relative space-y-2">
-              <label htmlFor="pin-location-search" className="text-sm text-ink-secondary">
-                Найти место
-              </label>
-              <Input
-                id="pin-location-search"
-                value={searchQuery}
-                role="combobox"
-                aria-expanded={searchOpen && searchResults.length > 0}
-                aria-controls={searchListId}
-                aria-autocomplete="list"
-                onChange={(event) => {
-                  setSearchQuery(event.target.value);
-                  setSearchOpen(true);
-                }}
-                onFocus={() => {
-                  setSearchOpen(true);
-                }}
-                onKeyDown={handleSearchKeyDown}
-                placeholder="Город, район или место"
-              />
-              {searchOpen && (searchLoading || searchResults.length > 0) ? (
-                <ul
-                  id={searchListId}
-                  role="listbox"
-                  className="absolute z-10 mt-1 w-full overflow-hidden rounded-control border border-line bg-night-800 shadow-float"
-                >
-                  {searchLoading ? (
-                    <li className="flex items-center gap-2 px-3 py-2 text-sm text-ink-muted">
-                      <Spinner size={14} />
-                      Поиск…
-                    </li>
-                  ) : (
-                    searchResults.map((result, index) => (
-                      <li key={result.id} role="option" aria-selected={index === searchHighlight}>
-                        <button
-                          type="button"
-                          className={cn(
-                            "w-full px-3 py-2 text-left text-sm transition-colors hover:bg-night-700",
-                            index === searchHighlight && "bg-night-700",
-                          )}
-                          onMouseDown={(event) => {
-                            event.preventDefault();
-                            selectSearchResult(result);
-                          }}
-                        >
-                          <span className="text-ink-primary">{result.name}</span>
-                          {result.placeFormatted ? (
-                            <span className="mt-0.5 block text-xs text-ink-muted">
-                              {result.placeFormatted}
-                            </span>
-                          ) : null}
-                        </button>
-                      </li>
-                    ))
-                  )}
-                </ul>
-              ) : null}
-            </div>
+                <div className="relative space-y-2">
+                  <label htmlFor="pin-location-search" className="text-sm text-ink-secondary">
+                    Найти место
+                  </label>
+                  <Input
+                    id="pin-location-search"
+                    value={searchQuery}
+                    role="combobox"
+                    aria-expanded={searchOpen && searchResults.length > 0}
+                    aria-controls={searchListId}
+                    aria-autocomplete="list"
+                    onChange={(event) => {
+                      setSearchQuery(event.target.value);
+                      setSearchOpen(true);
+                    }}
+                    onFocus={() => {
+                      setSearchOpen(true);
+                    }}
+                    onKeyDown={handleSearchKeyDown}
+                    placeholder="Город, район или место"
+                  />
+                  {searchOpen && (searchLoading || searchResults.length > 0) ? (
+                    <ul
+                      id={searchListId}
+                      role="listbox"
+                      className="absolute z-10 mt-1 w-full overflow-hidden rounded-control border border-line bg-night-800 shadow-float"
+                    >
+                      {searchLoading ? (
+                        <li className="flex items-center gap-2 px-3 py-2 text-sm text-ink-muted">
+                          <Spinner size={14} />
+                          Поиск…
+                        </li>
+                      ) : (
+                        searchResults.map((result, index) => (
+                          <li key={result.id} role="option" aria-selected={index === searchHighlight}>
+                            <button
+                              type="button"
+                              className={cn(
+                                "w-full px-3 py-2 text-left text-sm transition-colors hover:bg-night-700",
+                                index === searchHighlight && "bg-night-700",
+                              )}
+                              onMouseDown={(event) => {
+                                event.preventDefault();
+                                selectSearchResult(result);
+                              }}
+                            >
+                              <span className="text-ink-primary">{result.name}</span>
+                              {result.placeFormatted ? (
+                                <span className="mt-0.5 block text-xs text-ink-muted">
+                                  {result.placeFormatted}
+                                </span>
+                              ) : null}
+                            </button>
+                          </li>
+                        ))
+                      )}
+                    </ul>
+                  ) : null}
+                </div>
+              </>
+            )}
           </section>
 
           <section className="space-y-4">
@@ -638,7 +709,7 @@ export function PinEditorSheet({
             <Button
               type="button"
               className="flex-1"
-              loading={createPinMutation.isPending || isSaving}
+              loading={createPinMutation.isPending || updatePinMutation.isPending}
               disabled={!title.trim()}
               onClick={handleSubmit}
             >
@@ -647,7 +718,7 @@ export function PinEditorSheet({
             <Button
               type="button"
               variant="ghost"
-              disabled={createPinMutation.isPending || isSaving}
+              disabled={createPinMutation.isPending || updatePinMutation.isPending}
               onClick={requestExit}
             >
               Отмена

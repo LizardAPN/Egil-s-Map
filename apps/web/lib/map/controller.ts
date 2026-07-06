@@ -110,6 +110,7 @@ export class MapController {
   private pendingPinsData: FeatureCollection<Point, PinFeatureProperties> | null =
     null;
   private createModeActive = false;
+  private moveModeActive = false;
   private draftLocation: PinLocation | null = null;
   private draftMarker: mapboxgl.Marker | null = null;
   private readonly draftChangeCallbacks = new Set<DraftChangeCallback>();
@@ -329,7 +330,23 @@ export class MapController {
     this.map.off("click", this.handleCreateModeClick);
     this.draftMarker?.remove();
     this.draftMarker = null;
+    this.moveModeActive = false;
     this.setDraftLocation(null);
+  }
+
+  enterMoveMode(initial: PinLocation): void {
+    this.moveModeActive = true;
+    this.moveDraft(initial);
+  }
+
+  exitMoveMode(): void {
+    this.moveModeActive = false;
+    this.draftMarker?.remove();
+    this.draftMarker = null;
+  }
+
+  isInMoveMode(): boolean {
+    return this.moveModeActive;
   }
 
   moveDraft(location: PinLocation): void {

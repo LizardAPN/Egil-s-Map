@@ -1,8 +1,25 @@
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { forwardGeocode, reverseGeocode } from "./geocoding";
+import { ApiError } from "./errors";
+import {
+  forwardGeocode,
+  pickBestReverseFeature,
+  reverseGeocode,
+  type V6Feature,
+  type V6Response,
+} from "./geocoding";
 
 const MOCK_TOKEN = "pk.test-token";
+const fixturesDir = join(dirname(fileURLToPath(import.meta.url)), "fixtures");
+
+function loadFixture(name: string): V6Response {
+  const raw = readFileSync(join(fixturesDir, name), "utf8");
+  return JSON.parse(raw) as V6Response;
+}
 
 const lisbonFeature = {
   properties: {
@@ -28,6 +45,41 @@ const portoFeature = {
   geometry: { coordinates: [-8.6291, 41.1579] },
 };
 
+describe("pickBestReverseFeature", () => {
+  it("picks address in Moscow fixture", () => {
+    const data = loadFixture("geocode-v6-reverse-moscow.json");
+    const result = pickBestReverseFeature(data);
+
+    expect(result?.featureType).toBe("address");
+    expect(result?.name).toBe("проезд Воскресенские Ворота 1а");
+  });
+
+  it("picks place/locality over street in rural fixture", () => {
+    const data = loadFixture("geocode-v6-reverse-rural.json");
+    const result = pickBestReverseFeature(data);
+
+    expect(result?.name).toBe("Боровск");
+    expect(result?.featureType).toBe("place");
+  });
+
+  it("filters out disallowed feature types", () => {
+    const result = pickBestReverseFeature({
+      features: [
+        {
+          properties: {
+            mapbox_id: "country.1",
+            feature_type: "country",
+            name: "Россия",
+          },
+        },
+        lisbonFeature as V6Feature,
+      ],
+    });
+
+    expect(result?.name).toBe("Лиссабон");
+  });
+});
+
 describe("reverseGeocode", () => {
   beforeEach(() => {
     vi.stubEnv("NEXT_PUBLIC_MAPBOX_TOKEN", MOCK_TOKEN);
@@ -38,50 +90,23 @@ describe("reverseGeocode", () => {
     vi.restoreAllMocks();
   });
 
-  it("returns the most specific allowed feature", async () => {
+  it("returns the best reverse feature from v6 response", async () => {
+    const data = loadFixture("geocode-v6-reverse-moscow.json");
+
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve({ features: [lisbonFeature] }),
+        json: () => Promise.resolve(data),
       }),
     );
 
-    const result = await reverseGeocode(-9.14, 38.72);
+    const result = await reverseGeocode(37.6173, 55.7558);
 
-    expect(result).toEqual({
-      id: "place.123",
-      name: "Лиссабон",
-      placeFormatted: "Лиссабон, Португалия",
-      featureType: "place",
-      location: { lng: -9.1393, lat: 38.7223 },
-    });
-  });
-
-  it("filters out disallowed feature types", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue({
-        ok: true,
-        json: () =>
-          Promise.resolve({
-            features: [
-              {
-                properties: {
-                  mapbox_id: "country.1",
-                  feature_type: "country",
-                  name: "Portugal",
-                },
-              },
-              lisbonFeature,
-            ],
-          }),
-      }),
-    );
-
-    const result = await reverseGeocode(-9.14, 38.72);
-
-    expect(result?.name).toBe("Лиссабон");
+    expect(result?.name).toBe("проезд Воскресенские Ворота 1а");
+    const fetchUrl = String(vi.mocked(fetch).mock.calls[0]?.[0]);
+    expect(fetchUrl).toContain("/search/geocode/v6/reverse");
+    expect(fetchUrl).not.toContain("types=");
   });
 
   it("throws when token is missing", async () => {
@@ -90,6 +115,27 @@ describe("reverseGeocode", () => {
     await expect(reverseGeocode(0, 0)).rejects.toThrow(
       "NEXT_PUBLIC_MAPBOX_TOKEN is not set",
     );
+  });
+
+  it("throws ApiError on non-200 response", async () => {
+    vi.stubEnv("NODE_ENV", "development");
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 422,
+        json: () => Promise.resolve(loadFixture("geocode-v6-validation-error.json")),
+      }),
+    );
+
+    await expect(reverseGeocode(0, 0)).rejects.toBeInstanceOf(ApiError);
+    await expect(reverseGeocode(0, 0)).rejects.toMatchObject({
+      code: "geocode_failed",
+      message: "Geocoding request failed (422)",
+    });
+    expect(warnSpy).toHaveBeenCalled();
   });
 });
 
@@ -101,6 +147,26 @@ describe("forwardGeocode", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
+  });
+
+  it("returns address results from v6 forward fixture", async () => {
+    const data = loadFixture("geocode-v6-forward-address.json");
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(data),
+      }),
+    );
+
+    const results = await forwardGeocode("улица Чайковского 11");
+
+    expect(results.length).toBeGreaterThan(0);
+    expect(results[0]?.featureType).toBe("address");
+    expect(results[0]?.name).toBe("улица Чайковского 11");
+    const fetchUrl = String(vi.mocked(fetch).mock.calls[0]?.[0]);
+    expect(fetchUrl).not.toContain("types=");
   });
 
   it("returns up to 5 matching results", async () => {
